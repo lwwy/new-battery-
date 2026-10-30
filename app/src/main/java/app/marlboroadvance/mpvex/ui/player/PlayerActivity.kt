@@ -645,33 +645,33 @@ class PlayerActivity :
   }
 
   override fun onStop() {
-    runCatching {
-      pipHelper.onStop()
-      saveVideoPlaybackState(fileName)
+  runCatching {
+    pipHelper.onStop()
+    saveVideoPlaybackState(fileName)
 
-      if (noisyReceiverRegistered) {
-        unregisterReceiver(noisyReceiver)
-        noisyReceiverRegistered = false
-      }
-
-      if (!serviceBound && audioPreferences.automaticBackgroundPlayback.get() && !isUserFinishing) {
-        startBackgroundPlayback()
-      } else {
-        if (!audioPreferences.automaticBackgroundPlayback.get() || isUserFinishing) {
-          viewModel.pause()
-        }
-        if (serviceBound) {
-          runCatching {
-            unbindService(serviceConnection)
-            serviceBound = false
-          }
-        }
-      }
-    }.onFailure { e ->
-      Log.e(TAG, "Error during onStop", e)
+    if (noisyReceiverRegistered) {
+      unregisterReceiver(noisyReceiver)
+      noisyReceiverRegistered = false
     }
 
-    super.onStop()
+    if (!serviceBound && audioPreferences.automaticBackgroundPlayback.get() && !isUserFinishing) {
+      startBackgroundPlayback()
+    } else {
+      if (!audioPreferences.automaticBackgroundPlayback.get() || isUserFinishing) {
+        // viewModel.pause()  // <--- 就是在这里加了双斜杠！这样它就不会自动暂停了
+      }
+      if (serviceBound) {
+        runCatching {
+          unbindService(serviceConnection)
+          serviceBound = false
+        }
+      }
+    }
+  }.onFailure { e ->
+    Log.e(TAG, "Error during onStop", e)
+  }
+
+  super.onStop()
   }
 
   @RequiresApi(Build.VERSION_CODES.P)
