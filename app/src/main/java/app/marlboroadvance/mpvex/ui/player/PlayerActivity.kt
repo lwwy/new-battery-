@@ -81,6 +81,7 @@ import java.io.File
 class PlayerActivity :
   AppCompatActivity(),
   PlayerHost {
+  private var isPausedByScreenOff = false
   // ==================== ViewModels and Bindings ====================
 
   /**
@@ -654,16 +655,28 @@ class PlayerActivity :
       noisyReceiverRegistered = false
     }
 
-    if (!serviceBound && audioPreferences.automaticBackgroundPlayback.get() && !isUserFinishing) {
-      startBackgroundPlayback()
+    // 判断是否为息屏状态
+    val powerManager = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+    val isScreenOff = !powerManager.isInteractive
+
+    if (isScreenOff && !isUserFinishing) {
+      // 【息屏】: 强制暂停播放，并记录状态
+      isPausedByScreenOff = true
+      viewModel.pause() 
     } else {
-      if (!audioPreferences.automaticBackgroundPlayback.get() || isUserFinishing) {
-        // viewModel.pause()  // <--- 就是在这里加了双斜杠！这样它就不会自动暂停了
-      }
-      if (serviceBound) {
-        runCatching {
-          unbindService(serviceConnection)
-          serviceBound = false
+      // 【切后台】: 走你原有的逻辑
+      isPausedByScreenOff = false
+      if (!serviceBound && audioPreferences.automaticBackgroundPlayback.get() && !isUserFinishing) {
+        startBackgroundPlayback()
+      } else {
+        if (!audioPreferences.automaticBackgroundPlayback.get() || isUserFinishing) {
+          viewModel.pause()
+        }
+        if (serviceBound) {
+          runCatching {
+            unbindService(serviceConnection)
+            serviceBound = false
+          }
         }
       }
     }
@@ -672,36 +685,43 @@ class PlayerActivity :
   }
 
   super.onStop()
-  }
+}
 
-  @RequiresApi(Build.VERSION_CODES.P)
-  override fun onStart() {
-    super.onStart()
+@RequiresApi(Build.VERSION_CODES.P)
+override fun onStart() {
+  super.onStart()
 
-    runCatching {
-      setupWindowFlags()
-      setupSystemUI()
+  runCatching {
+    setupWindowFlags()
+    setupSystemUI()
 
-      if (!noisyReceiverRegistered) {
-        val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-        registerReceiver(noisyReceiver, filter)
-        noisyReceiverRegistered = true
-      }
-
-      if (playerPreferences.rememberBrightness.get()) {
-        val brightness = playerPreferences.defaultBrightness.get()
-        if (brightness != BRIGHTNESS_NOT_SET) {
-          viewModel.changeBrightnessTo(brightness)
-        }
-      }
-
-      if (serviceBound) {
-        endBackgroundPlayback()
-      }
-    }.onFailure { e ->
-      Log.e(TAG, "Error during onStart", e)
+    if (!noisyReceiverRegistered) {
+      val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+      registerReceiver(noisyReceiver, filter)
+      noisyReceiverRegistered = true
     }
+
+    if (playerPreferences.rememberBrightness.get()) {
+      val brightness = playerPreferences.defaultBrightness.get()
+      if (brightness != BRIGHTNESS_NOT_SET) {
+        viewModel.changeBrightnessTo(brightness)
+      }
+    }
+
+    if (serviceBound) {
+      endBackgroundPlayback()
+    }
+
+    // 【新增逻辑】：如果上次是因为息屏暂停的，现在亮屏了，直接继续播放
+    if (isPausedByScreenOff) {
+      viewModel.togglePlayPause() // 如果报错找不到这个方法，请改成 viewModel.play()
+      isPausedByScreenOff = false // 恢复状态
+    }
+
+  }.onFailure { e ->
+    Log.e(TAG, "Error during onStart", e)
   }
+}
 
   private fun setupWindowFlags() {
     pipHelper.updatePictureInPictureParams()
