@@ -25,21 +25,8 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew assemblePreview
 
-      - name: Copy build artifacts
-        run: |
-          set -e
-          commit_count=$(git rev-list --count HEAD)
-          declare -a apks=("universal" "arm64-v8a" "armeabi-v7a" "x86" "x86_64")
-          mkdir -p output
-          
-          for arch in "${apks[@]}"; do
-            src="app/build/outputs/apk/preview/app-${arch}-preview-unsigned.apk"
-            dest="output/mpvEx-preview-r${commit_count}-${arch}.apk"
-            cp "$src" "$dest"
-          done
-
       - name: Upload all artifacts
         uses: actions/upload-artifact@v4
         with:
           name: preview-apks
-          path: output/
+          path: app/build/outputs/apk/preview/*.apk
