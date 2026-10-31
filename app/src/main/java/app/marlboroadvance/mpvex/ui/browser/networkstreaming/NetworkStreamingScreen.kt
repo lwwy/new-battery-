@@ -110,7 +110,7 @@ object NetworkStreamingScreen : Screen {
     Scaffold(
       topBar = {
         BrowserTopBar(
-          title = "Network",
+          title = "网络",
           isInSelectionMode = false,
           selectedCount = 0,
           totalCount = 0,
@@ -139,7 +139,7 @@ object NetworkStreamingScreen : Screen {
             ExtendedFloatingActionButton(
               onClick = { showAddSheet = true },
               icon = { Icon(Icons.Filled.Add, contentDescription = null) },
-              text = { Text("Add Connection") },
+              text = { Text("添加连接") },
             )
           }
         }
@@ -165,7 +165,7 @@ object NetworkStreamingScreen : Screen {
           item {
             Spacer(modifier = Modifier.height(24.dp))
             Text(
-              text = "Local Network",
+              text = "局域网",
               style = MaterialTheme.typography.titleLarge,
               fontWeight = FontWeight.Bold,
               color = MaterialTheme.colorScheme.primary,
@@ -194,14 +194,14 @@ object NetworkStreamingScreen : Screen {
                   )
                   Spacer(modifier = Modifier.height(16.dp))
                   Text(
-                    text = "No network connections",
+                    text = "无网络连接",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface, // a
+                    color = MaterialTheme.colorScheme.onSurface,
                   )
                   Spacer(modifier = Modifier.height(8.dp))
                   Text(
-                    text = "Add SMB, FTP, or WebDAV connections to browse network files",
+                    text = "添加 SMB、FTP 或 WebDAV 连接以浏览网络文件",
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.Center,
@@ -269,7 +269,6 @@ object NetworkStreamingScreen : Screen {
     }
   }
 }
-
 @Composable
 private fun StreamLinkSection(
   onPlayLink: (String) -> Unit,
@@ -281,7 +280,7 @@ private fun StreamLinkSection(
     modifier = Modifier.fillMaxWidth(),
   ) {
     Text(
-      text = "Stream Link",
+      text = "串流链接",
       style = MaterialTheme.typography.titleLarge,
       fontWeight = FontWeight.Bold,
       color = MaterialTheme.colorScheme.primary,
@@ -299,7 +298,7 @@ private fun StreamLinkSection(
         OutlinedTextField(
           value = linkUrl,
           onValueChange = { linkUrl = it },
-          label = { Text("Video URL") },
+          label = { Text("视频 URL") },
           placeholder = {
             Text(
               text = "https://example.com/video.mp4",
@@ -345,7 +344,7 @@ private fun StreamLinkSection(
               modifier = Modifier.padding(end = 8.dp),
             )
             Text(
-              text = "Paste",
+              text = "粘贴",
               fontWeight = FontWeight.Bold,
             )
           }
@@ -369,7 +368,7 @@ private fun StreamLinkSection(
               modifier = Modifier.padding(end = 8.dp),
             )
             Text(
-              text = "Play",
+              text = "播放",
               fontWeight = FontWeight.Bold,
             )
           }
