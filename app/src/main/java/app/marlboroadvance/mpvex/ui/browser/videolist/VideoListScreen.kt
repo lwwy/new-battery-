@@ -236,9 +236,6 @@ data class VideoListScreen(
           if (selectionManager.isInSelectionMode) {
             selectionManager.toggle(video)
           } else {
-            // Always use MediaUtils.playFile which lets PlayerActivity auto-generate playlist
-            // This avoids TransactionTooLargeException from passing large playlists
-            // PlayerActivity will auto-generate playlist from folder if playlistMode is enabled
             MediaUtils.playFile(video, context, "video_list")
           }
         },
@@ -339,7 +336,7 @@ data class VideoListScreen(
       // Private Space Loading Dialog
       LoadingDialog(
         isOpen = movingToPrivateSpace.value,
-        message = "Moving to private space...",
+        message = "正在移至私密空间...",
       )
 
       // Private Space Completion Dialog
@@ -348,15 +345,15 @@ data class VideoListScreen(
           onDismissRequest = { showPrivateSpaceCompletionDialog.value = false },
           title = {
             Text(
-              text = "Moved to Private Space",
+              text = "已移至私密空间",
               style = MaterialTheme.typography.headlineSmall,
             )
           },
           text = {
             Text(
               text =
-                "Successfully moved ${privateSpaceMovedCount.intValue} video(s) to private space.\n\n" +
-                  "To access private space, long press on the app name at the top of the main screen.",
+                "成功将 ${privateSpaceMovedCount.intValue} 个视频移至私密空间。\n\n" +
+                  "要访问私密空间，请长按主屏幕顶部的应用名称。",
               style = MaterialTheme.typography.bodyMedium,
             )
           },
@@ -364,7 +361,7 @@ data class VideoListScreen(
             androidx.compose.material3.Button(
               onClick = { showPrivateSpaceCompletionDialog.value = false },
             ) {
-              Text("Close")
+              Text("关闭")
             }
           },
         )
@@ -382,229 +379,4 @@ data class VideoListScreen(
       )
     }
   }
-}
-
-@Composable
-private fun VideoListContent(
-  videosWithInfo: List<VideoWithPlaybackInfo>,
-  isLoading: Boolean,
-  isRefreshing: androidx.compose.runtime.MutableState<Boolean>,
-  recentlyPlayedFilePath: String?,
-  videosWereDeletedOrMoved: Boolean,
-  autoScrollToLastPlayed: Boolean,
-  onRefresh: suspend () -> Unit,
-  selectionManager: SelectionManager<Video, Long>,
-  onVideoClick: (Video) -> Unit,
-  onVideoLongClick: (Video) -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  val thumbnailRepository = koinInject<ThumbnailRepository>()
-  val gesturePreferences = koinInject<GesturePreferences>()
-  val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
-  val density = LocalDensity.current
-  val thumbWidthDp = 128.dp
-  val aspect = 16f / 9f
-  val thumbWidthPx = with(density) { thumbWidthDp.roundToPx() }
-  val thumbHeightPx = (thumbWidthPx / aspect).roundToInt()
-
-  when {
-    isLoading && videosWithInfo.isEmpty() -> {
-      Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-      ) {
-        CircularProgressIndicator(
-          modifier = Modifier.size(48.dp),
-          color = MaterialTheme.colorScheme.primary,
-        )
-      }
-    }
-
-    videosWithInfo.isEmpty() && !isLoading && videosWereDeletedOrMoved -> {
-      Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
-      ) {
-        EmptyState(
-          icon = Icons.Filled.VideoLibrary,
-          title = "No videos in this folder",
-          message = "Videos you add to this folder will appear here",
-        )
-      }
-    }
-
-    else -> {
-      // Calculate initial scroll position to avoid jank (like MX Player)
-      val initialScrollIndex = remember(videosWithInfo, recentlyPlayedFilePath, autoScrollToLastPlayed) {
-        if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && videosWithInfo.isNotEmpty()) {
-          val index = videosWithInfo.indexOfFirst { it.video.path == recentlyPlayedFilePath }
-          if (index >= 0) index else 0
-        } else {
-          0
-        }
-      }
-      
-      val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = initialScrollIndex,
-        initialFirstVisibleItemScrollOffset = -200
-      )
-      val coroutineScope = rememberCoroutineScope()
-
-      // Check if at top of list to hide scrollbar during pull-to-refresh
-      val isAtTop by remember {
-        derivedStateOf {
-          listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-        }
-      }
-
-      // Only show scrollbar if list has more than 20 items
-      val hasEnoughItems = videosWithInfo.size > 20
-
-      // Animate scrollbar alpha
-      val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
-        targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
-        label = "scrollbarAlpha",
-      )
-
-      PullRefreshBox(
-        isRefreshing = isRefreshing,
-        onRefresh = onRefresh,
-        listState = listState,
-        modifier = modifier.fillMaxSize(),
-      ) {
-        LazyColumnScrollbar(
-          state = listState,
-          settings = ScrollbarSettings(
-            thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-            thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
-          ),
-        ) {
-          LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(8.dp),
-          ) {
-            items(
-              count = videosWithInfo.size,
-              key = { index -> videosWithInfo[index].video.id },
-            ) { index ->
-              val videoWithInfo = videosWithInfo[index]
-              val isRecentlyPlayed = recentlyPlayedFilePath?.let { videoWithInfo.video.path == it } ?: false
-
-              // Prefetch upcoming thumbnails
-              androidx.compose.runtime.LaunchedEffect(index) {
-                if (index < videosWithInfo.size - 1) {
-                  val upcomingVideos =
-                    videosWithInfo.subList(
-                      (index + 1).coerceAtMost(videosWithInfo.size),
-                      (index + 11).coerceAtMost(videosWithInfo.size),
-                    )
-                  thumbnailRepository.prefetchThumbnails(upcomingVideos.map { it.video }, thumbWidthPx, thumbHeightPx)
-                }
-              }
-
-              VideoCard(
-                video = videoWithInfo.video,
-                progressPercentage = videoWithInfo.progressPercentage,
-                isRecentlyPlayed = isRecentlyPlayed,
-                isSelected = selectionManager.isSelected(videoWithInfo.video),
-                isOldAndUnplayed = videoWithInfo.isOldAndUnplayed,
-                onClick = { onVideoClick(videoWithInfo.video) },
-                onLongClick = { onVideoLongClick(videoWithInfo.video) },
-                onThumbClick = if (tapThumbnailToSelect) {
-                  { onVideoLongClick(videoWithInfo.video) }
-                } else {
-                  { onVideoClick(videoWithInfo.video) }
-                },
-              )
-            }
-          }
-        }
-      }
-    }
-  }
-}
-
-@Composable
-private fun VideoSortDialog(
-  isOpen: Boolean,
-  onDismiss: () -> Unit,
-  sortType: VideoSortType,
-  sortOrder: SortOrder,
-  onSortTypeChange: (VideoSortType) -> Unit,
-  onSortOrderChange: (SortOrder) -> Unit,
-) {
-  val browserPreferences = koinInject<BrowserPreferences>()
-  val appearancePreferences = koinInject<AppearancePreferences>()
-  val showSizeChip by browserPreferences.showSizeChip.collectAsState()
-  val showResolutionChip by browserPreferences.showResolutionChip.collectAsState()
-  val showFramerateInResolution by browserPreferences.showFramerateInResolution.collectAsState()
-  val showProgressBar by browserPreferences.showProgressBar.collectAsState()
-  val unlimitedNameLines by appearancePreferences.unlimitedNameLines.collectAsState()
-
-  SortDialog(
-    isOpen = isOpen,
-    onDismiss = onDismiss,
-    title = "Sort Videos",
-    sortType = sortType.displayName,
-    onSortTypeChange = { typeName ->
-      VideoSortType.entries.find { it.displayName == typeName }?.let(onSortTypeChange)
-    },
-    sortOrderAsc = sortOrder.isAscending,
-    onSortOrderChange = { isAsc ->
-      onSortOrderChange(if (isAsc) SortOrder.Ascending else SortOrder.Descending)
-    },
-    types =
-      listOf(
-        VideoSortType.Title.displayName,
-        VideoSortType.Duration.displayName,
-        VideoSortType.Date.displayName,
-        VideoSortType.Size.displayName,
-      ),
-    icons =
-      listOf(
-        Icons.Filled.Title,
-        Icons.Filled.AccessTime,
-        Icons.Filled.CalendarToday,
-        Icons.Filled.SwapVert,
-      ),
-    getLabelForType = { type, _ ->
-      when (type) {
-        VideoSortType.Title.displayName -> Pair("A-Z", "Z-A")
-        VideoSortType.Duration.displayName -> Pair("Shortest", "Longest")
-        VideoSortType.Date.displayName -> Pair("Oldest", "Newest")
-        VideoSortType.Size.displayName -> Pair("Smallest", "Biggest")
-        else -> Pair("Asc", "Desc")
-      }
-    },
-    visibilityToggles =
-      listOf(
-        VisibilityToggle(
-          label = "Full Name",
-          checked = unlimitedNameLines,
-          onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) },
-        ),
-        VisibilityToggle(
-          label = "Size",
-          checked = showSizeChip,
-          onCheckedChange = { browserPreferences.showSizeChip.set(it) },
-        ),
-        VisibilityToggle(
-          label = "Resolution",
-          checked = showResolutionChip,
-          onCheckedChange = { browserPreferences.showResolutionChip.set(it) },
-        ),
-        VisibilityToggle(
-          label = "Framerate",
-          checked = showFramerateInResolution,
-          onCheckedChange = { browserPreferences.showFramerateInResolution.set(it) },
-        ),
-        VisibilityToggle(
-          label = "Progress Bar",
-          checked = showProgressBar,
-          onCheckedChange = { browserPreferences.showProgressBar.set(it) },
-        ),
-      ),
-  )
 }
