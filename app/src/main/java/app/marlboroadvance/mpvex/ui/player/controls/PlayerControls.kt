@@ -86,6 +86,7 @@ import app.marlboroadvance.mpvex.ui.player.Panels
 import app.marlboroadvance.mpvex.ui.player.PlayerActivity
 import app.marlboroadvance.mpvex.ui.player.PlayerUpdates
 import app.marlboroadvance.mpvex.ui.player.PlayerViewModel
+import app.marlboroadvance.mpvex.ui.BatteryIndicator
 import app.marlboroadvance.mpvex.ui.player.Sheets
 import app.marlboroadvance.mpvex.ui.player.controls.components.BrightnessSlider
 import app.marlboroadvance.mpvex.ui.player.controls.components.CompactSpeedIndicator
@@ -269,6 +270,8 @@ fun PlayerControls(
         val playerPauseButton = createRef()
         val seekbar = createRef()
         val (playerUpdates) = createRefs()
+         // 👇 在这里加上这一行
+        val batteryIndicator = createRef()
 
         val isBrightnessSliderShown by viewModel.isBrightnessSliderShown.collectAsState()
         val isVolumeSliderShown by viewModel.isVolumeSliderShown.collectAsState()
@@ -1037,6 +1040,16 @@ fun PlayerControls(
             activity = activity,
           )
         }
+        // 👇👇👇 请把电池代码粘贴在两个大括号中间 👇👇👇
+        BatteryIndicator(
+          modifier = Modifier
+            .constrainAs(batteryIndicator) {
+              top.linkTo(parent.top, margin = 36.dp)
+              end.linkTo(parent.end, margin = 16.dp)
+            }
+            .zIndex(10f)
+        )
+        // 👆👆👆 粘贴在这里 👆👆👆
       }
     }
 
