@@ -282,3 +282,31 @@ object AboutScreen : Screen {
     }
   }
 }
+@Suppress("DEPRECATION")
+@Serializable
+object LibrariesScreen : Screen {
+  @OptIn(ExperimentalMaterial3Api::class)
+  @Composable
+  override fun Content() {
+    val backstack = LocalBackStack.current
+    Scaffold(
+      topBar = {
+        TopAppBar(
+          title = { Text(text = stringResource(id = R.string.pref_about_oss_libraries)) },
+          navigationIcon = {
+            IconButton(onClick = backstack::removeLastOrNull) {
+              Icon(imageVector = Icons.AutoMirrored.Default.ArrowBack, contentDescription = null)
+            }
+          },
+        )
+      },
+    ) { paddingValues ->
+      LibrariesContainer(
+        modifier =
+          Modifier
+            .fillMaxSize()
+            .padding(paddingValues),
+      )
+    }
+  }
+}
