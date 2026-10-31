@@ -95,7 +95,7 @@ fun FolderCard(
       ) {
         Icon(
           customIcon ?: Icons.Filled.Folder,
-          contentDescription = "Folder",
+          contentDescription = "文件夹",
           modifier = Modifier.size(48.dp),
           tint = MaterialTheme.colorScheme.secondary,
         )
@@ -157,7 +157,7 @@ fun FolderCard(
           // Hide chips at storage root level (when videoCount is 0)
           if (showTotalVideosChip && folder.videoCount > 0) {
             Text(
-              if (folder.videoCount == 1) "1 Video" else "${folder.videoCount} Videos",
+              if (folder.videoCount == 1) "1 个视频" else "${folder.videoCount} 个视频",
               style = MaterialTheme.typography.labelSmall,
               modifier =
                 Modifier
@@ -239,9 +239,9 @@ private fun formatDuration(durationMs: Long): String {
   val secs = seconds % 60
 
   return when {
-    hours > 0 -> "${hours}h ${minutes}m"
-    minutes > 0 -> "${minutes}m"
-    else -> "${secs}s"
+    hours > 0 -> "${hours}小时 ${minutes}分"
+    minutes > 0 -> "${minutes}分钟"
+    else -> "${secs}秒"
   }
 }
 
@@ -254,6 +254,6 @@ private fun formatFileSize(bytes: Long): String {
 }
 
 private fun formatDate(timestampSeconds: Long): String {
-  val sdf = java.text.SimpleDateFormat("MMM dd, yyyy", java.util.Locale.getDefault())
+  val sdf = java.text.SimpleDateFormat("yyyy年MM月dd日", java.util.Locale.getDefault())
   return sdf.format(java.util.Date(timestampSeconds * 1000))
 }
