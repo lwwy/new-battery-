@@ -712,11 +712,13 @@ override fun onStart() {
       endBackgroundPlayback()
     }
 
-    // 【新增逻辑】：如果上次是因为息屏暂停的，现在亮屏了，直接继续播放
-    if (isPausedByScreenOff) {
-      MPVLib.setPropertyBoolean("pause", false) 
-      isPausedByScreenOff = false // 恢复状态
-    }
+    // 【新增逻辑】：如果上次是因为息屏暂停的，现在亮屏了，延迟1秒等画布准备好再播放
+if (isPausedByScreenOff) {
+  android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+    MPVLib.setPropertyBoolean("pause", false)
+  }, 1000) 
+  isPausedByScreenOff = false // 恢复状态
+}
 
   }.onFailure { e ->
     Log.e(TAG, "Error during onStart", e)
