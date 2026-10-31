@@ -248,20 +248,28 @@ object AboutScreen : Screen {
                 ) {
                   Icon(
                     imageVector = Icons.Filled.Info,
-                    contentDescription = "Device Info",
+                    contentDescription = "设备信息",
                     modifier = Modifier.size(20.dp),
                     tint = cs.onPrimaryContainer,
                   )
                   Spacer(modifier = Modifier.width(8.dp))
                   Text(
-                    text = "Device Info",
+                    text = "设备信息",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.SemiBold,
                     color = cs.onPrimaryContainer,
                   )
                 }
                 Text(
-                  text = collectDeviceInfo(),
+                  text = collectDeviceInfo()
+                    .replace("App version: ", "应用版本: ")
+                    .replace("Android version: ", "安卓版本: ")
+                    .replace("Device brand: ", "设备品牌: ")
+                    .replace("Device manufacturer: ", "设备制造商: ")
+                    .replace("Device model: ", "设备型号: ")
+                    .replace("MPV version: ", "MPV 版本: ")
+                    .replace("ffmpeg version: ", "ffmpeg 版本: ")
+                    .replace("libplacebo version: ", "libplacebo 版本: "),
                   style = MaterialTheme.typography.bodySmall,
                   color = cs.onPrimaryContainer.copy(alpha = 0.85f),
                 )
@@ -269,179 +277,8 @@ object AboutScreen : Screen {
             }
           }
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        // Donate Section
-        Text(
-          text = stringResource(id = R.string.pref_about_donate_title),
-          style = MaterialTheme.typography.titleMedium,
-          fontWeight = FontWeight.SemiBold,
-          color = cs.onSurface,
-          modifier = Modifier.padding(start = 4.dp, bottom = 8.dp),
-        )
-
-        // Ko-fi
-        Surface(
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .clickable {
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW,
-                    context.getString(R.string.pref_about_donate_kofi_url).toUri(),
-                  ),
-                )
-              },
-          shape = RoundedCornerShape(16.dp),
-          color = cs.surfaceContainerHigh,
-        ) {
-          Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Icon(
-              imageVector = Icons.Filled.MonetizationOn,
-              contentDescription = null,
-              modifier = Modifier.size(24.dp),
-              tint = cs.onSurface,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_kofi),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = cs.onSurface,
-              )
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_kofi_summary),
-                style = MaterialTheme.typography.bodyMedium,
-                color = cs.onSurfaceVariant,
-              )
-            }
-          }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // PayPal
-        Surface(
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .clickable {
-                context.startActivity(
-                  Intent(
-                    Intent.ACTION_VIEW,
-                    context.getString(R.string.pref_about_donate_paypal_url).toUri(),
-                  ),
-                )
-              },
-          shape = RoundedCornerShape(16.dp),
-          color = cs.surfaceContainerHigh,
-        ) {
-          Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Icon(
-              imageVector = Icons.Filled.AccountBalance,
-              contentDescription = null,
-              modifier = Modifier.size(24.dp),
-              tint = cs.onSurface,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_paypal),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = cs.onSurface,
-              )
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_paypal_summary),
-                style = MaterialTheme.typography.bodyMedium,
-                color = cs.onSurfaceVariant,
-              )
-            }
-          }
-        }
-
-        Spacer(Modifier.height(8.dp))
-
-        // UPI
-        Surface(
-          modifier =
-            Modifier
-              .fillMaxWidth()
-              .clickable {
-                clipboardManager.setText(
-                  AnnotatedString(context.getString(R.string.pref_about_donate_upi_id)),
-                )
-              },
-          shape = RoundedCornerShape(16.dp),
-          color = cs.surfaceContainerHigh,
-        ) {
-          Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-          ) {
-            Icon(
-              imageVector = Icons.Filled.CurrencyRupee,
-              contentDescription = null,
-              modifier = Modifier.size(24.dp),
-              tint = cs.onSurface,
-            )
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_upi),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                color = cs.onSurface,
-              )
-              Text(
-                text = stringResource(id = R.string.pref_about_donate_upi_id),
-                style = MaterialTheme.typography.bodyMedium,
-                color = cs.onSurfaceVariant,
-              )
-            }
-          }
-        }
-
         Spacer(Modifier.height(12.dp))
       }
-    }
-  }
-}
-
-@Suppress("DEPRECATION")
-@Serializable
-object LibrariesScreen : Screen {
-  @OptIn(ExperimentalMaterial3Api::class)
-  @Composable
-  override fun Content() {
-    val backstack = LocalBackStack.current
-    Scaffold(
-      topBar = {
-        TopAppBar(
-          title = { Text(text = stringResource(id = R.string.pref_about_oss_libraries)) },
-          navigationIcon = {
-            IconButton(onClick = backstack::removeLastOrNull) {
-              Icon(imageVector = Icons.AutoMirrored.Default.ArrowBack, contentDescription = null)
-            }
-          },
-        )
-      },
-    ) { paddingValues ->
-      LibrariesContainer(
-        modifier =
-          Modifier
-            .fillMaxSize()
-            .padding(paddingValues),
-      )
     }
   }
 }
