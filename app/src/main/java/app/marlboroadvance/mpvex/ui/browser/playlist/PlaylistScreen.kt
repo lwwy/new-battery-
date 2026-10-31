@@ -158,11 +158,11 @@ object PlaylistScreen : Screen {
                 onSearch = { },
                 expanded = false,
                 onExpandedChange = { },
-                placeholder = { Text("Search playlists...") },
+                placeholder = { Text("搜索播放列表...") },
                 leadingIcon = {
                   Icon(
                     imageVector = Icons.Filled.Search,
-                    contentDescription = "Search",
+                    contentDescription = "搜索",
                   )
                 },
                 trailingIcon = {
@@ -174,7 +174,7 @@ object PlaylistScreen : Screen {
                   ) {
                     Icon(
                       imageVector = Icons.Filled.Close,
-                      contentDescription = "Cancel",
+                      contentDescription = "取消",
                     )
                   }
                 },
@@ -193,7 +193,7 @@ object PlaylistScreen : Screen {
           }
         } else {
           BrowserTopBar(
-            title = "Playlists",
+            title = "播放列表",
             isInSelectionMode = selectionManager.isInSelectionMode,
             selectedCount = selectionManager.selectedCount,
             totalCount = playlistsWithCount.size,
@@ -238,8 +238,8 @@ object PlaylistScreen : Screen {
         ) {
           EmptyState(
             icon = Icons.Filled.Search,
-            title = "No playlists found",
-            message = "Try a different search term",
+            title = "未找到播放列表",
+            message = "请尝试其他搜索关键词",
           )
         }
       } else if (playlistsWithCount.isEmpty() && hasCompletedInitialLoad) {
@@ -256,8 +256,8 @@ object PlaylistScreen : Screen {
           ) {
             EmptyState(
               icon = Icons.Outlined.PlaylistAdd,
-              title = "No playlists yet",
-              message = "Create a playlist or add one from an m3u URL",
+              title = "暂无播放列表",
+              message = "创建一个播放列表或从 m3u 链接添加",
             )
           }
         }
@@ -305,13 +305,13 @@ object PlaylistScreen : Screen {
             result.onSuccess {
               android.widget.Toast.makeText(
                 context,
-                "Playlist added successfully",
+                "播放列表添加成功",
                 android.widget.Toast.LENGTH_SHORT
               ).show()
             }.onFailure { error ->
               android.widget.Toast.makeText(
                 context,
-                "Failed to add m3u playlist: ${error.message}",
+                "添加 m3u 播放列表失败：${error.message}",
                 android.widget.Toast.LENGTH_LONG
               ).show()
             }
@@ -324,13 +324,13 @@ object PlaylistScreen : Screen {
             result.onSuccess {
               android.widget.Toast.makeText(
                 context,
-                "m3u playlist added successfully",
+                "m3u 播放列表添加成功",
                 android.widget.Toast.LENGTH_SHORT
               ).show()
             }.onFailure { error ->
               android.widget.Toast.makeText(
                 context,
-                "Failed to add m3u playlist: ${error.message}",
+                "添加 m3u 播放列表失败：${error.message}",
                 android.widget.Toast.LENGTH_LONG
               ).show()
             }
@@ -346,12 +346,12 @@ object PlaylistScreen : Screen {
         var playlistName by remember { mutableStateOf(selectedPlaylist.playlist.name) }
         androidx.compose.material3.AlertDialog(
           onDismissRequest = { showRenameDialog = false },
-          title = { Text("Rename Playlist") },
+          title = { Text("重命名播放列表") },
           text = {
             androidx.compose.material3.OutlinedTextField(
               value = playlistName,
               onValueChange = { playlistName = it },
-              label = { Text("Playlist Name") },
+              label = { Text("播放列表名称") },
               singleLine = true,
               modifier = Modifier.fillMaxWidth(),
             )
@@ -369,14 +369,14 @@ object PlaylistScreen : Screen {
               },
               enabled = playlistName.isNotBlank(),
             ) {
-              Text("Rename")
+              Text("重命名")
             }
           },
           dismissButton = {
             androidx.compose.material3.TextButton(
               onClick = { showRenameDialog = false },
             ) {
-              Text("Cancel")
+              Text("取消")
             }
           },
         )
@@ -397,7 +397,6 @@ object PlaylistScreen : Screen {
     }
   }
 }
-
 @Composable
 private fun PlaylistListContent(
   playlistsWithCount: List<PlaylistWithCount>,
@@ -469,12 +468,12 @@ private fun CreatePlaylistDialog(
 
   androidx.compose.material3.AlertDialog(
     onDismissRequest = onDismiss,
-    title = { Text("Create Playlist") },
+    title = { Text("创建播放列表") },
     text = {
       androidx.compose.material3.OutlinedTextField(
         value = playlistName,
         onValueChange = { playlistName = it },
-        label = { Text("Playlist Name") },
+        label = { Text("播放列表名称") },
         singleLine = true,
         modifier = Modifier.fillMaxWidth(),
       )
@@ -488,12 +487,12 @@ private fun CreatePlaylistDialog(
         },
         enabled = playlistName.isNotBlank(),
       ) {
-        Text("Create")
+        Text("创建")
       }
     },
     dismissButton = {
       androidx.compose.material3.TextButton(onClick = onDismiss) {
-        Text("Cancel")
+        Text("取消")
       }
     },
   )
@@ -524,14 +523,14 @@ private fun AddM3UPlaylistDialog(
     } else {
       onDismiss
     },
-    title = { Text("Add m3u Playlist") },
+    title = { Text("添加 m3u 播放列表") },
     text = {
       Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(12.dp)
       ) {
         Text(
-          text = "Enter the URL of an m3u playlist file, or choose a local file",
+          text = "输入 m3u 播放列表文件的 URL，或选择本地文件",
           style = MaterialTheme.typography.bodyMedium,
           color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -539,7 +538,7 @@ private fun AddM3UPlaylistDialog(
         androidx.compose.material3.OutlinedTextField(
           value = playlistUrl,
           onValueChange = { playlistUrl = it },
-          label = { Text("Playlist URL") },
+          label = { Text("播放列表 URL") },
           singleLine = false,
           maxLines = 3,
           modifier = Modifier.fillMaxWidth(),
@@ -554,7 +553,7 @@ private fun AddM3UPlaylistDialog(
         ) {
           androidx.compose.material3.HorizontalDivider(modifier = Modifier.weight(1f))
           Text(
-            text = "OR",
+            text = "或",
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
           )
@@ -575,7 +574,7 @@ private fun AddM3UPlaylistDialog(
             modifier = Modifier.size(20.dp)
           )
           androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
-          Text("Choose Local m3u File")
+          Text("选择本地 m3u 文件")
         }
         
         if (isLoading) {
@@ -598,7 +597,7 @@ private fun AddM3UPlaylistDialog(
         },
         enabled = playlistUrl.isNotBlank() && !isLoading,
       ) {
-        Text("Add from URL")
+        Text("从 URL 添加")
       }
     },
     dismissButton = {
@@ -606,7 +605,7 @@ private fun AddM3UPlaylistDialog(
         onClick = onDismiss,
         enabled = !isLoading
       ) {
-        Text("Cancel")
+        Text("取消")
       }
     },
   )
