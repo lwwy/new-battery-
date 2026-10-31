@@ -48,7 +48,7 @@ fun ControlLayoutPreview(
   Column(modifier = modifier) {
     // Landscape Preview
     Text(
-      "Landscape Mode",
+      "横屏模式",
       style = MaterialTheme.typography.titleSmall,
       modifier = Modifier.padding(bottom = 8.dp),
     )
@@ -63,7 +63,7 @@ fun ControlLayoutPreview(
 
     // Portrait Preview
     Text(
-      "Portrait Mode",
+      "竖屏模式",
       style = MaterialTheme.typography.titleSmall,
       modifier = Modifier.padding(bottom = 8.dp),
     )
@@ -372,7 +372,7 @@ private fun PreviewButton(
     when (button) {
       PlayerButton.VIDEO_TITLE -> {
         Text(
-          "Video Title",
+          "视频标题",
           maxLines = 1,
           overflow = TextOverflow.Ellipsis,
           style = MaterialTheme.typography.bodySmall.copy(fontSize = 9.sp),
