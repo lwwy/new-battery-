@@ -52,12 +52,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ListItem
 import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.Box
 import androidx.core.view.HapticFeedbackConstantsCompat
-import androidx.compose.ui.unit.dp
 
 @Serializable
 object PlayerPreferencesScreen : Screen {
@@ -113,13 +111,13 @@ object PlayerPreferencesScreen : Screen {
           SwitchPreference(
             value = playlistMode,
             onValueChange = preferences.playlistMode::set,
-            title = { Text(text = "Playlist Mode") },
+            title = { Text(text = "播放列表模式") },
             summary = { 
               Text(
                 text = if (playlistMode)
-                  "Automatically enable next/previous navigation for all videos in folder"
+                  "自动为文件夹中的所有视频启用上一个/下一个导航"
                 else
-                  "Play videos individually (select multiple for playlist)"
+                  "单独播放视频（选择多个视频以创建播放列表）"
               )
             },
           )
@@ -136,13 +134,13 @@ object PlayerPreferencesScreen : Screen {
           SwitchPreference(
             value = horizontalSeekGesture,
             onValueChange = preferences.horizontalSeekGesture::set,
-            title = { Text(stringResource(R.string.pref_player_gestures_seek)) },
+            title = { Text(text = "水平滑动定位") },
           )
           val showSeekbarWhenSeeking by preferences.showSeekBarWhenSeeking.collectAsState()
           SwitchPreference(
             value = showSeekbarWhenSeeking,
             onValueChange = preferences.showSeekBarWhenSeeking::set,
-            title = { Text(stringResource(R.string.pref_player_show_seekbar_when_seeking)) },
+            title = { Text(text = "定位时显示进度条") },
           )
           val showDoubleTapOvals by preferences.showDoubleTapOvals.collectAsState()
           SwitchPreference(
@@ -162,118 +160,122 @@ object PlayerPreferencesScreen : Screen {
             onValueChange = preferences.usePreciseSeeking::set,
             title = { Text(stringResource(R.string.pref_player_use_precise_seeking)) },
           )
-
           val seekbarStyle by appearancePreferences.seekbarStyle.collectAsState()
 
-          Column(Modifier.padding(vertical = 8.dp)) {
+Column(Modifier.padding(vertical = 8.dp)) {
+     Text(
+         text = "进度条样式",
+         style = MaterialTheme.typography.titleSmall, // Smaller font as requested
+         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+         color = MaterialTheme.colorScheme.primary
+     )
+     SeekbarStyle.entries.forEach { style ->
+         ListItem(
+             headlineContent = {
                Text(
-                   text = "Seekbar Style",
-                   style = MaterialTheme.typography.titleSmall, // Smaller font as requested
-                   modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                   color = MaterialTheme.colorScheme.primary
+                 text = when (style.name) {
+                   "Standard" -> "标准"
+                   "Wavy" -> "波浪"
+                   "Simple" -> "简约"
+                   "Circular" -> "圆形"
+                   else -> style.name
+                 },
                )
-               SeekbarStyle.entries.forEach { style ->
-                   ListItem(
-                       headlineContent = {
-                         Text(
-                           text =
-                             style.name,
-                         )
-                       },
-                       supportingContent = {
-                           SeekbarPreview(
-                               style = style, 
-                               modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-                           )
-                       },
-                       trailingContent = {
-                           RadioButton(
-                               selected = seekbarStyle == style,
-                               onClick = null 
-                           )
-                       },
-                       modifier = Modifier
-                           .clickable { appearancePreferences.seekbarStyle.set(style) }
-                   )
-               }
-          }
-          PreferenceCategory(
-            title = { Text(stringResource(R.string.pref_player_gestures)) },
-          )
-          val brightnessGesture by preferences.brightnessGesture.collectAsState()
-          SwitchPreference(
-            value = brightnessGesture,
-            onValueChange = preferences.brightnessGesture::set,
-            title = { Text(stringResource(R.string.pref_player_gestures_brightness)) },
-          )
-          val volumeGesture by preferences.volumeGesture.collectAsState()
-          SwitchPreference(
-            value = volumeGesture,
-            onValueChange = preferences.volumeGesture::set,
-            title = { Text(stringResource(R.string.pref_player_gestures_volume)) },
-          )
-          val pinchToZoomGesture by preferences.pinchToZoomGesture.collectAsState()
-          SwitchPreference(
-            value = pinchToZoomGesture,
-            onValueChange = preferences.pinchToZoomGesture::set,
-            title = { Text(stringResource(R.string.pref_player_gestures_pinch_to_zoom)) },
-          )
-          val holdForMultipleSpeed by preferences.holdForMultipleSpeed.collectAsState()
-          SliderPreference(
-            value = holdForMultipleSpeed,
-            onValueChange = { preferences.holdForMultipleSpeed.set(it.toFixed(2)) },
-            title = { Text(stringResource(R.string.pref_player_gestures_hold_for_multiple_speed)) },
-            valueRange = 0f..6f,
-            summary = {
-              Text(
-                if (holdForMultipleSpeed == 0F) {
-                  stringResource(R.string.generic_disabled)
-                } else {
-                  "%.2fx".format(holdForMultipleSpeed)
-                },
-              )
-            },
-            onSliderValueChange = { preferences.holdForMultipleSpeed.set(it.toFixed(2)) },
-            sliderValue = holdForMultipleSpeed,
-          )
-          val showDynamicSpeedOverlay by preferences.showDynamicSpeedOverlay.collectAsState()
-          SwitchPreference(
-            value = showDynamicSpeedOverlay,
-            onValueChange = preferences.showDynamicSpeedOverlay::set,
-            title = { Text("Dynamic Speed Overlay") },
-            summary = { Text("Show advance overlay for speed control during long press and swipe") }
-          )
-          PreferenceCategory(
-            title = { Text(stringResource(R.string.pref_player_controls)) },
-          )
-          val allowGesturesInPanels by preferences.allowGesturesInPanels.collectAsState()
-          SwitchPreference(
-            value = allowGesturesInPanels,
-            onValueChange = preferences.allowGesturesInPanels::set,
-            title = {
-              Text(
-                text = stringResource(id = R.string.pref_player_controls_allow_gestures_in_panels),
-              )
-            },
-          )
-          val displayVolumeAsPercentage by preferences.displayVolumeAsPercentage.collectAsState()
-          SwitchPreference(
-            value = displayVolumeAsPercentage,
-            onValueChange = preferences.displayVolumeAsPercentage::set,
-            title = { Text(stringResource(R.string.pref_player_controls_display_volume_as_percentage)) },
-          )
-          val swapVolumeAndBrightness by preferences.swapVolumeAndBrightness.collectAsState()
-          SwitchPreference(
-            value = swapVolumeAndBrightness,
-            onValueChange = preferences.swapVolumeAndBrightness::set,
-            title = { Text(stringResource(R.string.swap_the_volume_and_brightness_slider)) },
-          )
-          val showLoadingCircle by preferences.showLoadingCircle.collectAsState()
-          SwitchPreference(
-            value = showLoadingCircle,
-            onValueChange = preferences.showLoadingCircle::set,
-            title = { Text(stringResource(R.string.pref_player_controls_show_loading_circle)) },
-          )
+             },
+             supportingContent = {
+                 SeekbarPreview(
+                     style = style, 
+                     modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+                 )
+             },
+             trailingContent = {
+                 RadioButton(
+                     selected = seekbarStyle == style,
+                     onClick = null 
+                 )
+             },
+             modifier = Modifier
+                 .clickable { appearancePreferences.seekbarStyle.set(style) }
+         )
+     }
+}
+PreferenceCategory(
+  title = { Text(stringResource(R.string.pref_player_gestures)) },
+)
+val brightnessGesture by preferences.brightnessGesture.collectAsState()
+SwitchPreference(
+  value = brightnessGesture,
+  onValueChange = preferences.brightnessGesture::set,
+  title = { Text(stringResource(R.string.pref_player_gestures_brightness)) },
+)
+val volumeGesture by preferences.volumeGesture.collectAsState()
+SwitchPreference(
+  value = volumeGesture,
+  onValueChange = preferences.volumeGesture::set,
+  title = { Text(stringResource(R.string.pref_player_gestures_volume)) },
+)
+val pinchToZoomGesture by preferences.pinchToZoomGesture.collectAsState()
+SwitchPreference(
+  value = pinchToZoomGesture,
+  onValueChange = preferences.pinchToZoomGesture::set,
+  title = { Text(stringResource(R.string.pref_player_gestures_pinch_to_zoom)) },
+)
+val holdForMultipleSpeed by preferences.holdForMultipleSpeed.collectAsState()
+SliderPreference(
+  value = holdForMultipleSpeed,
+  onValueChange = { preferences.holdForMultipleSpeed.set(it.toFixed(2)) },
+  title = { Text(stringResource(R.string.pref_player_gestures_hold_for_multiple_speed)) },
+  valueRange = 0f..6f,
+  summary = {
+    Text(
+      if (holdForMultipleSpeed == 0F) {
+        stringResource(R.string.generic_disabled)
+      } else {
+        "%.2fx".format(holdForMultipleSpeed)
+      },
+    )
+  },
+  onSliderValueChange = { preferences.holdForMultipleSpeed.set(it.toFixed(2)) },
+  sliderValue = holdForMultipleSpeed,
+)
+val showDynamicSpeedOverlay by preferences.showDynamicSpeedOverlay.collectAsState()
+SwitchPreference(
+  value = showDynamicSpeedOverlay,
+  onValueChange = preferences.showDynamicSpeedOverlay::set,
+  title = { Text("动态倍速浮层") },
+  summary = { Text("长按并滑动调速时显示增强控制浮层") }
+)
+PreferenceCategory(
+  title = { Text(stringResource(R.string.pref_player_controls)) },
+)
+val allowGesturesInPanels by preferences.allowGesturesInPanels.collectAsState()
+SwitchPreference(
+  value = allowGesturesInPanels,
+  onValueChange = preferences.allowGesturesInPanels::set,
+  title = {
+    Text(
+      text = stringResource(id = R.string.pref_player_controls_allow_gestures_in_panels),
+    )
+  },
+)
+val displayVolumeAsPercentage by preferences.displayVolumeAsPercentage.collectAsState()
+SwitchPreference(
+  value = displayVolumeAsPercentage,
+  onValueChange = preferences.displayVolumeAsPercentage::set,
+  title = { Text(stringResource(R.string.pref_player_controls_display_volume_as_percentage)) },
+)
+val swapVolumeAndBrightness by preferences.swapVolumeAndBrightness.collectAsState()
+SwitchPreference(
+  value = swapVolumeAndBrightness,
+  onValueChange = preferences.swapVolumeAndBrightness::set,
+  title = { Text(stringResource(R.string.swap_the_volume_and_brightness_slider)) },
+)
+val showLoadingCircle by preferences.showLoadingCircle.collectAsState()
+SwitchPreference(
+  value = showLoadingCircle,
+  onValueChange = preferences.showLoadingCircle::set,
+  title = { Text(stringResource(R.string.pref_player_controls_show_loading_circle)) },
+)
           PreferenceCategory(
             title = { Text(stringResource(R.string.pref_player_display)) },
           )
@@ -309,18 +311,18 @@ object PlayerPreferencesScreen : Screen {
             values = predefinedTimeValues + listOf(-1),
             valueToText = { value ->
               if (value == -1) {
-                AnnotatedString("Custom")
+                AnnotatedString("自定义")
               } else {
-                AnnotatedString("$value ms")
+                AnnotatedString("$value 毫秒")
               }
             },
             title = { Text(text = stringResource(R.string.pref_player_display_hide_player_control_time)) },
             summary = {
               Text(
                 text = if (isCustomTimeValue) {
-                  "Custom ($playerTimeToDisappear ms)"
+                  "自定义 ($playerTimeToDisappear 毫秒)"
                 } else {
-                  "$playerTimeToDisappear ms"
+                  "$playerTimeToDisappear 毫秒"
                 },
               )
             },
@@ -333,13 +335,13 @@ object PlayerPreferencesScreen : Screen {
               text = {
                 Column {
                   Text(
-                    text = "Enter custom hide time in milliseconds",
+                    text = "输入自定义隐藏时间（毫秒）",
                     modifier = Modifier.padding(bottom = 8.dp),
                   )
                   OutlinedTextField(
                     value = customTimeValue,
                     onValueChange = { customTimeValue = it },
-                    label = { Text("Milliseconds") },
+                    label = { Text("毫秒") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
