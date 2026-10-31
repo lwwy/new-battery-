@@ -714,7 +714,7 @@ override fun onStart() {
 
     // 【新增逻辑】：如果上次是因为息屏暂停的，现在亮屏了，直接继续播放
     if (isPausedByScreenOff) {
-      viewModel.Play() // 如果报错找不到这个方法，请改成 viewModel.play()
+      MPVLib.setPropertyBoolean("pause", false) 
       isPausedByScreenOff = false // 恢复状态
     }
 
