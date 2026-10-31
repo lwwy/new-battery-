@@ -1043,7 +1043,7 @@ fun PlayerControls(
         BatteryIndicator(
   modifier = Modifier
     .constrainAs(batteryIndicator) {
-      top.linkTo(parent.top, margin = 36.dp)
+      top.linkTo(parent.top, margin = 14.dp)
       end.linkTo(parent.end, margin = 16.dp)
     }
 )
