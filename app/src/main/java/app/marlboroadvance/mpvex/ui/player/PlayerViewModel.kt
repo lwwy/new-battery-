@@ -45,9 +45,9 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 enum class RepeatMode {
-  OFF,      // No repeat
-  ONE,      // Repeat current file
-  ALL       // Repeat all (playlist)
+  OFF,      // 不循环
+  ONE,      // 单曲循环
+  ALL       // 列表循环
 }
 
 class PlayerViewModelProviderFactory(
@@ -61,7 +61,7 @@ class PlayerViewModelProviderFactory(
       @Suppress("UNCHECKED_CAST")
       return PlayerViewModel(host) as T
     }
-    throw IllegalArgumentException("Unknown ViewModel class")
+    throw IllegalArgumentException("未知的 ViewModel 类")
   }
 }
 
@@ -176,7 +176,9 @@ class PlayerViewModel(
   val externalSubtitles: List<String> get() = _externalSubtitles.toList()
 
   // Repeat and Shuffle state
-  private val _repeatMode = MutableStateFlow(RepeatMode.OFF)
+  // 👇👇👇 核心修改：默认开启列表循环 👇👇👇
+  private val _repeatMode = MutableStateFlow(RepeatMode.ALL)
+  // 👆👆👆 核心修改 👆👆👆
   val repeatMode: StateFlow<RepeatMode> = _repeatMode.asStateFlow()
 
   private val _shuffleEnabled = MutableStateFlow(false)
@@ -202,517 +204,488 @@ class PlayerViewModel(
     val VALID_SUBTITLE_EXTENSIONS =
       setOf("srt", "ass", "ssa", "sub", "idx", "vtt", "sup", "txt", "pgs")
   }
+  
+// ==================== Timer ====================
 
-  // ==================== Timer ====================
+fun startTimer(seconds: Int) {
+  timerJob?.cancel()
+  _remainingTime.value = seconds
+  if (seconds < 1) return
 
-  fun startTimer(seconds: Int) {
-    timerJob?.cancel()
-    _remainingTime.value = seconds
-    if (seconds < 1) return
-
-    timerJob =
-      viewModelScope.launch {
-        for (time in seconds downTo 0) {
-          _remainingTime.value = time
-          delay(1000)
-        }
-        MPVLib.setPropertyBoolean("pause", true)
-        showToast(host.context.getString(R.string.toast_sleep_timer_ended))
+  timerJob =
+    viewModelScope.launch {
+      for (time in seconds downTo 0) {
+        _remainingTime.value = time
+        delay(1000)
       }
-  }
-
-  // ==================== Decoder ====================
-
-  // ==================== Audio/Subtitle Management ====================
-
-  fun addAudio(uri: Uri) {
-    viewModelScope.launch(Dispatchers.IO) {
-      runCatching {
-        val path =
-          uri.resolveUri(host.context)
-            ?: return@launch withContext(Dispatchers.Main) {
-              showToast("Failed to load audio file: Invalid URI")
-            }
-
-        MPVLib.command("audio-add", path, "cached")
-        withContext(Dispatchers.Main) {
-          showToast("Audio track added")
-        }
-      }.onFailure { e ->
-        withContext(Dispatchers.Main) {
-          showToast("Failed to load audio: ${e.message}")
-        }
-        android.util.Log.e("PlayerViewModel", "Error adding audio", e)
-      }
-    }
-  }
-
-  fun addSubtitle(uri: Uri) {
-    viewModelScope.launch(Dispatchers.IO) {
-      runCatching {
-        val fileName = getFileNameFromUri(uri) ?: "subtitle.srt"
-
-        if (!isValidSubtitleFile(fileName)) {
-          return@launch withContext(Dispatchers.Main) {
-            showToast("Invalid subtitle file format")
-          }
-        }
-
-        // Take persistent URI permission for content:// URIs
-        if (uri.scheme == "content") {
-          try {
-            host.context.contentResolver.takePersistableUriPermission(
-              uri,
-              Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-          } catch (e: SecurityException) {
-            // Permission already granted or not available, continue anyway
-            android.util.Log.w("PlayerViewModel", "Could not take persistent permission for $uri", e)
-          }
-        }
-
-        MPVLib.command("sub-add", uri.toString(), "select")
-
-        // Track external subtitle URI for persistence
-        val uriString = uri.toString()
-        if (!_externalSubtitles.contains(uriString)) {
-          _externalSubtitles.add(uriString)
-        }
-
-        val displayName = fileName.take(30).let { if (fileName.length > 30) "$it..." else it }
-        withContext(Dispatchers.Main) {
-          showToast("$displayName added")
-        }
-      }.onFailure {
-        withContext(Dispatchers.Main) {
-          showToast("Failed to load subtitle")
-        }
-      }
-    }
-  }
-
-  fun setMediaTitle(mediaTitle: String) {
-    if (currentMediaTitle != mediaTitle) {
-      currentMediaTitle = mediaTitle
-      lastAutoSelectedMediaTitle = null
-      // Clear external subtitles when media changes
-      _externalSubtitles.clear()
-    }
-  }
-
-  fun setExternalSubtitles(subtitles: List<String>) {
-    _externalSubtitles.clear()
-    _externalSubtitles.addAll(subtitles)
-  }
-
-  fun removeSubtitle(id: Int) {
-    viewModelScope.launch(Dispatchers.IO) {
-      // Find the subtitle URI before removing
-      val tracks = subtitleTracks.value
-      val trackToRemove = tracks.firstOrNull { it.id == id }
-      
-      // Remove from MPV
-      MPVLib.command("sub-remove", id.toString())
-      
-      // Remove from tracked external subtitles if it's external
-      if (trackToRemove?.external == true) {
-        // Try to find and remove from our tracked list
-        // Since we can't get the original URI from MPV, we'll remove based on external flag
-        // This is a limitation, but on reload we'll re-add all tracked subtitles anyway
-      }
-    }
-  }
-
-  fun selectSub(id: Int) {
-    val primarySid = MPVLib.getPropertyInt("sid")
-
-    // Toggle subtitle: if clicking the current subtitle, turn it off, otherwise select the new one
-    if (id == primarySid) {
-      MPVLib.setPropertyBoolean("sid", false)
-    } else {
-      MPVLib.setPropertyInt("sid", id)
-    }
-  }
-
-  fun toggleSubtitle(id: Int) {
-    val primarySid = MPVLib.getPropertyInt("sid") ?: 0
-    val secondarySid = MPVLib.getPropertyInt("secondary-sid") ?: 0
-
-    when {
-      id == primarySid -> MPVLib.setPropertyString("sid", "no")
-      id == secondarySid -> MPVLib.setPropertyString("secondary-sid", "no")
-      primarySid <= 0 -> MPVLib.setPropertyInt("sid", id)
-      secondarySid <= 0 -> MPVLib.setPropertyInt("secondary-sid", id)
-      else -> MPVLib.setPropertyInt("sid", id)
-    }
-  }
-
-  fun isSubtitleSelected(id: Int): Boolean {
-    val primarySid = MPVLib.getPropertyInt("sid") ?: 0
-    val secondarySid = MPVLib.getPropertyInt("secondary-sid") ?: 0
-    return (id == primarySid && primarySid > 0) || (id == secondarySid && secondarySid > 0)
-  }
-
-  private fun getFileNameFromUri(uri: Uri): String? =
-    when (uri.scheme) {
-      "content" ->
-        host.context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
-          val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
-          if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
-        }
-
-      "file" -> uri.lastPathSegment
-      else -> uri.lastPathSegment
-    }
-
-  private fun isValidSubtitleFile(fileName: String): Boolean =
-    fileName.substringAfterLast('.', "").lowercase() in VALID_SUBTITLE_EXTENSIONS
-
-  // ==================== Playback Control ====================
-
-  fun pauseUnpause() {
-    viewModelScope.launch(Dispatchers.IO) {
-      MPVLib.command("cycle", "pause")
-    }
-  }
-
-  fun pause() {
-    viewModelScope.launch(Dispatchers.IO) {
       MPVLib.setPropertyBoolean("pause", true)
+      showToast(host.context.getString(R.string.toast_sleep_timer_ended))
+    }
+}
+
+// ==================== Audio/Subtitle Management ====================
+
+fun addAudio(uri: Uri) {
+  viewModelScope.launch(Dispatchers.IO) {
+    runCatching {
+      val path =
+        uri.resolveUri(host.context)
+          ?: return@launch withContext(Dispatchers.Main) {
+            showToast("无法加载音频文件：URI 无效")
+          }
+
+      MPVLib.command("audio-add", path, "cached")
+      withContext(Dispatchers.Main) {
+        showToast("已添加音轨")
+      }
+    }.onFailure { e ->
+      withContext(Dispatchers.Main) {
+        showToast("无法加载音频：${e.message}")
+      }
+      android.util.Log.e("PlayerViewModel", "Error adding audio", e)
     }
   }
+}
 
-  fun unpause() {
-    viewModelScope.launch(Dispatchers.IO) {
-      MPVLib.setPropertyBoolean("pause", false)
-    }
-  }
+fun addSubtitle(uri: Uri) {
+  viewModelScope.launch(Dispatchers.IO) {
+    runCatching {
+      val fileName = getFileNameFromUri(uri) ?: "subtitle.srt"
 
-  // ==================== UI Control ====================
-
-  fun showControls() {
-    if (sheetShown.value != Sheets.None || panelShown.value != Panels.None) return
-    if (showStatusBar) {
-      host.windowInsetsController.show(WindowInsetsCompat.Type.statusBars())
-      host.windowInsetsController.isAppearanceLightStatusBars = false
-    }
-    _controlsShown.value = true
-  }
-
-  fun hideControls() {
-    host.windowInsetsController.hide(WindowInsetsCompat.Type.statusBars())
-    _controlsShown.value = false
-  }
-
-  fun showSeekBar() {
-    if (sheetShown.value == Sheets.None) {
-      _seekBarShown.value = true
-    }
-  }
-
-  fun hideSeekBar() {
-    _seekBarShown.value = false
-  }
-
-  fun lockControls() {
-    _areControlsLocked.value = true
-  }
-
-  fun unlockControls() {
-    _areControlsLocked.value = false
-  }
-
-  // ==================== Seeking ====================
-
-  fun seekBy(offset: Int) {
-    coalesceSeek(offset)
-  }
-
-  fun seekTo(position: Int) {
-    viewModelScope.launch(Dispatchers.IO) {
-      val maxDuration = MPVLib.getPropertyInt("duration") ?: 0
-      if (position !in 0..maxDuration) return@launch
-
-      // Cancel pending relative seek before absolute seek
-      seekCoalesceJob?.cancel()
-      pendingSeekOffset = 0
-      val seekMode = if (playerPreferences.usePreciseSeeking.get()) "absolute+exact" else "absolute+keyframes"
-      MPVLib.command("seek", position.toString(), seekMode)
-    }
-  }
-
-  private fun coalesceSeek(offset: Int) {
-    pendingSeekOffset += offset
-    seekCoalesceJob?.cancel()
-    seekCoalesceJob =
-      viewModelScope.launch(Dispatchers.IO) {
-        delay(SEEK_COALESCE_DELAY_MS)
-        val toApply = pendingSeekOffset
-        pendingSeekOffset = 0
-        if (toApply != 0) {
-          val seekMode = if (playerPreferences.usePreciseSeeking.get()) "relative+exact" else "relative+keyframes"
-          MPVLib.command("seek", toApply.toString(), seekMode)
+      if (!isValidSubtitleFile(fileName)) {
+        return@launch withContext(Dispatchers.Main) {
+          showToast("字幕文件格式无效")
         }
       }
-  }
 
-  fun leftSeek() {
-    if ((pos ?: 0) > 0) {
-      _doubleTapSeekAmount.value -= doubleTapToSeekDuration
-    }
-    _isSeekingForwards.value = false
-    seekBy(-doubleTapToSeekDuration)
-    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
-  }
-
-  fun rightSeek() {
-    if ((pos ?: 0) < (duration ?: 0)) {
-      _doubleTapSeekAmount.value += doubleTapToSeekDuration
-    }
-    _isSeekingForwards.value = true
-    seekBy(doubleTapToSeekDuration)
-    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
-  }
-
-  fun updateSeekAmount(amount: Int) {
-    _doubleTapSeekAmount.value = amount
-  }
-
-  fun updateSeekText(text: String?) {
-    _seekText.value = text
-  }
-
-  private fun seekToWithText(
-    seekValue: Int,
-    text: String?,
-  ) {
-    val currentPos = pos ?: return
-    _isSeekingForwards.value = seekValue > currentPos
-    _doubleTapSeekAmount.value = seekValue - currentPos
-    _seekText.value = text
-    seekTo(seekValue)
-    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
-  }
-
-  private fun seekByWithText(
-    value: Int,
-    text: String?,
-  ) {
-    val currentPos = pos ?: return
-    val maxDuration = duration ?: return
-
-    _doubleTapSeekAmount.update {
-      if ((value < 0 && it < 0) || currentPos + value > maxDuration) 0 else it + value
-    }
-    _seekText.value = text
-    _isSeekingForwards.value = value > 0
-    seekBy(value)
-    if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
-  }
-
-  // ==================== Brightness & Volume ====================
-
-  fun changeBrightnessTo(brightness: Float) {
-    val coercedBrightness = brightness.coerceIn(0f, 1f)
-    host.hostWindow.attributes =
-      host.hostWindow.attributes.apply {
-        screenBrightness = coercedBrightness
+      if (uri.scheme == "content") {
+        try {
+          host.context.contentResolver.takePersistableUriPermission(
+            uri,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION
+          )
+        } catch (e: SecurityException) {
+          android.util.Log.w("PlayerViewModel", "Could not take persistent permission for $uri", e)
+        }
       }
-    currentBrightness.value = coercedBrightness
 
-    // Save brightness to preferences if enabled
-    if (playerPreferences.rememberBrightness.get()) {
-      playerPreferences.defaultBrightness.set(coercedBrightness)
-    }
-  }
+      MPVLib.command("sub-add", uri.toString(), "select")
 
-  fun displayBrightnessSlider() {
-    isBrightnessSliderShown.value = true
-    brightnessSliderTimestamp.value = System.currentTimeMillis()
-  }
-
-  fun changeVolumeBy(change: Int) {
-    val mpvVolume = MPVLib.getPropertyInt("volume")
-    val boostCap = volumeBoostCap ?: audioPreferences.volumeBoostCap.get()
-
-    if (boostCap > 0 && currentVolume.value == maxVolume) {
-      if (mpvVolume == 100 && change < 0) {
-        changeVolumeTo(currentVolume.value + change)
+      val uriString = uri.toString()
+      if (!_externalSubtitles.contains(uriString)) {
+        _externalSubtitles.add(uriString)
       }
-      val finalMPVVolume = (mpvVolume?.plus(change))?.coerceAtLeast(100) ?: 100
-      if (finalMPVVolume in 100..(boostCap + 100)) {
-        return changeMPVVolumeTo(finalMPVVolume)
+
+      val displayName = fileName.take(30).let { if (fileName.length > 30) "$it..." else it }
+      withContext(Dispatchers.Main) {
+        showToast("已添加 $displayName")
+      }
+    }.onFailure {
+      withContext(Dispatchers.Main) {
+        showToast("无法加载字幕")
       }
     }
-    changeVolumeTo(currentVolume.value + change)
   }
+}
 
-  fun changeVolumeTo(volume: Int) {
-    val newVolume = volume.coerceIn(0..maxVolume)
-    host.audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
-    currentVolume.value = newVolume
+fun setMediaTitle(mediaTitle: String) {
+  if (currentMediaTitle != mediaTitle) {
+    currentMediaTitle = mediaTitle
+    lastAutoSelectedMediaTitle = null
+    _externalSubtitles.clear()
   }
+}
 
-  fun changeMPVVolumeTo(volume: Int) {
-    MPVLib.setPropertyInt("volume", volume)
+fun setExternalSubtitles(subtitles: List<String>) {
+  _externalSubtitles.clear()
+  _externalSubtitles.addAll(subtitles)
+}
+
+fun removeSubtitle(id: Int) {
+  viewModelScope.launch(Dispatchers.IO) {
+    MPVLib.command("sub-remove", id.toString())
   }
+}
 
-  fun displayVolumeSlider() {
-    isVolumeSliderShown.value = true
-    volumeSliderTimestamp.value = System.currentTimeMillis()
+fun selectSub(id: Int) {
+  val primarySid = MPVLib.getPropertyInt("sid")
+  if (id == primarySid) {
+    MPVLib.setPropertyBoolean("sid", false)
+  } else {
+    MPVLib.setPropertyInt("sid", id)
   }
+}
 
-  // ==================== Video Aspect ====================
+fun toggleSubtitle(id: Int) {
+  val primarySid = MPVLib.getPropertyInt("sid") ?: 0
+  val secondarySid = MPVLib.getPropertyInt("secondary-sid") ?: 0
 
-  fun changeVideoAspect(
-    aspect: VideoAspect,
-    showUpdate: Boolean = true,
-  ) {
-    when (aspect) {
-      VideoAspect.Fit -> {
-        // To FIT: Reset both properties to their defaults.
-        MPVLib.setPropertyDouble("panscan", 0.0)
-        MPVLib.setPropertyDouble("video-aspect-override", -1.0)
+  when {
+    id == primarySid -> MPVLib.setPropertyString("sid", "no")
+    id == secondarySid -> MPVLib.setPropertyString("secondary-sid", "no")
+    primarySid <= 0 -> MPVLib.setPropertyInt("sid", id)
+    secondarySid <= 0 -> MPVLib.setPropertyInt("secondary-sid", id)
+    else -> MPVLib.setPropertyInt("sid", id)
+  }
+}
+
+fun isSubtitleSelected(id: Int): Boolean {
+  val primarySid = MPVLib.getPropertyInt("sid") ?: 0
+  val secondarySid = MPVLib.getPropertyInt("secondary-sid") ?: 0
+  return (id == primarySid && primarySid > 0) || (id == secondarySid && secondarySid > 0)
+}
+
+private fun getFileNameFromUri(uri: Uri): String? =
+  when (uri.scheme) {
+    "content" ->
+      host.context.contentResolver.query(uri, null, null, null, null)?.use { cursor ->
+        val nameIndex = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
+        if (nameIndex >= 0 && cursor.moveToFirst()) cursor.getString(nameIndex) else null
       }
-      VideoAspect.Crop -> {
-        // To CROP: Set panscan. MPV will auto-reset video-aspect-override.
-        MPVLib.setPropertyDouble("panscan", 1.0)
-      }
-      VideoAspect.Stretch -> {
-        // To STRETCH: Calculate ratio and set it. MPV will auto-reset panscan.
-        @Suppress("DEPRECATION")
-        val dm = DisplayMetrics()
-        @Suppress("DEPRECATION")
-        host.hostWindowManager.defaultDisplay.getRealMetrics(dm)
-        val ratio = dm.widthPixels / dm.heightPixels.toDouble()
+    "file" -> uri.lastPathSegment
+    else -> uri.lastPathSegment
+  }
 
-        MPVLib.setPropertyDouble("video-aspect-override", ratio)
+private fun isValidSubtitleFile(fileName: String): Boolean =
+  fileName.substringAfterLast('.', "").lowercase() in VALID_SUBTITLE_EXTENSIONS
+
+// ==================== Playback Control ====================
+
+fun pauseUnpause() {
+  viewModelScope.launch(Dispatchers.IO) {
+    MPVLib.command("cycle", "pause")
+  }
+}
+
+fun pause() {
+  viewModelScope.launch(Dispatchers.IO) {
+    MPVLib.setPropertyBoolean("pause", true)
+  }
+}
+
+fun unpause() {
+  viewModelScope.launch(Dispatchers.IO) {
+    MPVLib.setPropertyBoolean("pause", false)
+  }
+}
+
+// ==================== UI Control ====================
+
+fun showControls() {
+  if (sheetShown.value != Sheets.None || panelShown.value != Panels.None) return
+  if (showStatusBar) {
+    host.windowInsetsController.show(WindowInsetsCompat.Type.statusBars())
+    host.windowInsetsController.isAppearanceLightStatusBars = false
+  }
+  _controlsShown.value = true
+}
+
+fun hideControls() {
+  host.windowInsetsController.hide(WindowInsetsCompat.Type.statusBars())
+  _controlsShown.value = false
+}
+
+fun showSeekBar() {
+  if (sheetShown.value == Sheets.None) {
+    _seekBarShown.value = true
+  }
+}
+
+fun hideSeekBar() {
+  _seekBarShown.value = false
+}
+
+fun lockControls() {
+  _areControlsLocked.value = true
+}
+
+fun unlockControls() {
+  _areControlsLocked.value = false
+}
+
+// ==================== Seeking ====================
+
+fun seekBy(offset: Int) {
+  coalesceSeek(offset)
+}
+
+fun seekTo(position: Int) {
+  viewModelScope.launch(Dispatchers.IO) {
+    val maxDuration = MPVLib.getPropertyInt("duration") ?: 0
+    if (position !in 0..maxDuration) return@launch
+
+    seekCoalesceJob?.cancel()
+    pendingSeekOffset = 0
+    val seekMode = if (playerPreferences.usePreciseSeeking.get()) "absolute+exact" else "absolute+keyframes"
+    MPVLib.command("seek", position.toString(), seekMode)
+  }
+}
+
+private fun coalesceSeek(offset: Int) {
+  pendingSeekOffset += offset
+  seekCoalesceJob?.cancel()
+  seekCoalesceJob =
+    viewModelScope.launch(Dispatchers.IO) {
+      delay(SEEK_COALESCE_DELAY_MS)
+      val toApply = pendingSeekOffset
+      pendingSeekOffset = 0
+      if (toApply != 0) {
+        val seekMode = if (playerPreferences.usePreciseSeeking.get()) "relative+exact" else "relative+keyframes"
+        MPVLib.command("seek", toApply.toString(), seekMode)
       }
     }
+}
 
-    // Save the preference
-    playerPreferences.videoAspect.set(aspect)
+fun leftSeek() {
+  if ((pos ?: 0) > 0) {
+    _doubleTapSeekAmount.value -= doubleTapToSeekDuration
+  }
+  _isSeekingForwards.value = false
+  seekBy(-doubleTapToSeekDuration)
+  if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
+}
 
-    // Notify the UI
-    if (showUpdate) {
-      playerUpdate.value = PlayerUpdates.AspectRatio
+fun rightSeek() {
+  if ((pos ?: 0) < (duration ?: 0)) {
+    _doubleTapSeekAmount.value += doubleTapToSeekDuration
+  }
+  _isSeekingForwards.value = true
+  seekBy(doubleTapToSeekDuration)
+  if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
+}
+
+fun updateSeekAmount(amount: Int) {
+  _doubleTapSeekAmount.value = amount
+}
+
+fun updateSeekText(text: String?) {
+  _seekText.value = text
+}
+
+private fun seekToWithText(
+  seekValue: Int,
+  text: String?,
+) {
+  val currentPos = pos ?: return
+  _isSeekingForwards.value = seekValue > currentPos
+  _doubleTapSeekAmount.value = seekValue - currentPos
+  _seekText.value = text
+  seekTo(seekValue)
+  if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
+}
+
+private fun seekByWithText(
+  value: Int,
+  text: String?,
+) {
+  val currentPos = pos ?: return
+  val maxDuration = duration ?: return
+
+  _doubleTapSeekAmount.update {
+    if ((value < 0 && it < 0) || currentPos + value > maxDuration) 0 else it + value
+  }
+  _seekText.value = text
+  _isSeekingForwards.value = value > 0
+  seekBy(value)
+  if (playerPreferences.showSeekBarWhenSeeking.get()) showSeekBar()
+}
+
+// ==================== Brightness & Volume ====================
+
+fun changeBrightnessTo(brightness: Float) {
+  val coercedBrightness = brightness.coerceIn(0f, 1f)
+  host.hostWindow.attributes =
+    host.hostWindow.attributes.apply {
+      screenBrightness = coercedBrightness
+    }
+  currentBrightness.value = coercedBrightness
+
+  if (playerPreferences.rememberBrightness.get()) {
+    playerPreferences.defaultBrightness.set(coercedBrightness)
+  }
+}
+
+fun displayBrightnessSlider() {
+  isBrightnessSliderShown.value = true
+  brightnessSliderTimestamp.value = System.currentTimeMillis()
+}
+
+fun changeVolumeBy(change: Int) {
+  val mpvVolume = MPVLib.getPropertyInt("volume")
+  val boostCap = volumeBoostCap ?: audioPreferences.volumeBoostCap.get()
+
+  if (boostCap > 0 && currentVolume.value == maxVolume) {
+    if (mpvVolume == 100 && change < 0) {
+      changeVolumeTo(currentVolume.value + change)
+    }
+    val finalMPVVolume = (mpvVolume?.plus(change))?.coerceAtLeast(100) ?: 100
+    if (finalMPVVolume in 100..(boostCap + 100)) {
+      return changeMPVVolumeTo(finalMPVVolume)
+    }
+  }
+  changeVolumeTo(currentVolume.value + change)
+}
+
+fun changeVolumeTo(volume: Int) {
+  val newVolume = volume.coerceIn(0..maxVolume)
+  host.audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, newVolume, 0)
+  currentVolume.value = newVolume
+}
+
+fun changeMPVVolumeTo(volume: Int) {
+  MPVLib.setPropertyInt("volume", volume)
+}
+
+fun displayVolumeSlider() {
+  isVolumeSliderShown.value = true
+  volumeSliderTimestamp.value = System.currentTimeMillis()
+}
+
+// ==================== Video Aspect ====================
+
+fun changeVideoAspect(
+  aspect: VideoAspect,
+  showUpdate: Boolean = true,
+) {
+  when (aspect) {
+    VideoAspect.Fit -> {
+      MPVLib.setPropertyDouble("panscan", 0.0)
+      MPVLib.setPropertyDouble("video-aspect-override", -1.0)
+    }
+    VideoAspect.Crop -> {
+      MPVLib.setPropertyDouble("panscan", 1.0)
+    }
+    VideoAspect.Stretch -> {
+      @Suppress("DEPRECATION")
+      val dm = DisplayMetrics()
+      @Suppress("DEPRECATION")
+      host.hostWindowManager.defaultDisplay.getRealMetrics(dm)
+      val ratio = dm.widthPixels / dm.heightPixels.toDouble()
+      MPVLib.setPropertyDouble("video-aspect-override", ratio)
     }
   }
 
-  fun setCustomAspectRatio(ratio: Double) {
-    MPVLib.setPropertyDouble("panscan", 0.0)
-    MPVLib.setPropertyDouble("video-aspect-override", ratio)
-    playerPreferences.currentAspectRatio.set(ratio.toFloat())
+  playerPreferences.videoAspect.set(aspect)
+
+  if (showUpdate) {
     playerUpdate.value = PlayerUpdates.AspectRatio
   }
+}
 
-  fun restoreCustomAspectRatio() {
-    val savedRatio = playerPreferences.currentAspectRatio.get()
-    if (savedRatio > 0) {
-      MPVLib.setPropertyDouble("panscan", 0.0)
-      MPVLib.setPropertyDouble("video-aspect-override", savedRatio.toDouble())
-    }
+fun setCustomAspectRatio(ratio: Double) {
+  MPVLib.setPropertyDouble("panscan", 0.0)
+  MPVLib.setPropertyDouble("video-aspect-override", ratio)
+  playerPreferences.currentAspectRatio.set(ratio.toFloat())
+  playerUpdate.value = PlayerUpdates.AspectRatio
+}
+
+fun restoreCustomAspectRatio() {
+  val savedRatio = playerPreferences.currentAspectRatio.get()
+  if (savedRatio > 0) {
+    MPVLib.setPropertyDouble("panscan", 0.0)
+    MPVLib.setPropertyDouble("video-aspect-override", savedRatio.toDouble())
   }
+}
 
-  // ==================== Screen Rotation ====================
+// ==================== Screen Rotation ====================
 
-  fun cycleScreenRotations() {
-    host.hostRequestedOrientation =
-      when (host.hostRequestedOrientation) {
-        ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
-        ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE,
-        ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,
-        -> {
-          playerPreferences.orientation.set(PlayerOrientation.SensorPortrait)
-          ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
-        }
-        else -> {
-          playerPreferences.orientation.set(PlayerOrientation.SensorLandscape)
-          ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-        }
-      }
-  }
-
-  // ==================== Lua Invocation Handling ====================
-
-  fun handleLuaInvocation(
-    property: String,
-    value: String,
-  ) {
-    val data = value.removeSurrounding("\"").ifEmpty { return }
-
-    when (property.substringAfterLast("/")) {
-      "show_text" -> playerUpdate.value = PlayerUpdates.ShowText(data)
-      "toggle_ui" -> handleToggleUI(data)
-      "show_panel" -> handleShowPanel(data)
-      "seek_to_with_text" -> {
-        val (seekValue, text) = data.split("|", limit = 2)
-        seekToWithText(seekValue.toInt(), text)
-      }
-      "seek_by_with_text" -> {
-        val (seekValue, text) = data.split("|", limit = 2)
-        seekByWithText(seekValue.toInt(), text)
-      }
-      "seek_by" -> seekByWithText(data.toInt(), null)
-      "seek_to" -> seekToWithText(data.toInt(), null)
-      "software_keyboard" -> handleSoftwareKeyboard(data)
-    }
-
-    MPVLib.setPropertyString(property, "")
-  }
-
-  private fun handleToggleUI(data: String) {
-    when (data) {
-      "show" -> showControls()
-      "toggle" -> if (controlsShown.value) hideControls() else showControls()
-      "hide" -> {
-        sheetShown.value = Sheets.None
-        panelShown.value = Panels.None
-        hideControls()
-      }
-    }
-  }
-
-  private fun handleShowPanel(data: String) {
-    when (data) {
-      "frame_navigation" -> {
-        sheetShown.value = Sheets.FrameNavigation
+fun cycleScreenRotations() {
+  host.hostRequestedOrientation =
+    when (host.hostRequestedOrientation) {
+      ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE,
+      ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE,
+      ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE,
+      -> {
+        playerPreferences.orientation.set(PlayerOrientation.SensorPortrait)
+        ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
       }
       else -> {
-        panelShown.value =
-          when (data) {
-            "subtitle_settings" -> Panels.SubtitleSettings
-            "subtitle_delay" -> Panels.SubtitleDelay
-            "audio_delay" -> Panels.AudioDelay
-            "video_filters" -> Panels.VideoFilters
-            else -> Panels.None
-          }
+        playerPreferences.orientation.set(PlayerOrientation.SensorLandscape)
+        ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
       }
     }
+}
+
+// ==================== Lua Invocation Handling ====================
+
+fun handleLuaInvocation(
+  property: String,
+  value: String,
+) {
+  val data = value.removeSurrounding("\"").ifEmpty { return }
+
+  when (property.substringAfterLast("/")) {
+    "show_text" -> playerUpdate.value = PlayerUpdates.ShowText(data)
+    "toggle_ui" -> handleToggleUI(data)
+    "show_panel" -> handleShowPanel(data)
+    "seek_to_with_text" -> {
+      val (seekValue, text) = data.split("|", limit = 2)
+      seekToWithText(seekValue.toInt(), text)
+    }
+    "seek_by_with_text" -> {
+      val (seekValue, text) = data.split("|", limit = 2)
+      seekByWithText(seekValue.toInt(), text)
+    }
+    "seek_by" -> seekByWithText(data.toInt(), null)
+    "seek_to" -> seekToWithText(data.toInt(), null)
+    "software_keyboard" -> handleSoftwareKeyboard(data)
   }
 
-  private fun handleSoftwareKeyboard(data: String) {
-    when (data) {
-      "show" -> forceShowSoftwareKeyboard()
-      "hide" -> forceHideSoftwareKeyboard()
-      "toggle" ->
-        if (!inputMethodManager.isActive) {
-          forceShowSoftwareKeyboard()
-        } else {
-          forceHideSoftwareKeyboard()
+  MPVLib.setPropertyString(property, "")
+}
+
+private fun handleToggleUI(data: String) {
+  when (data) {
+    "show" -> showControls()
+    "toggle" -> if (controlsShown.value) hideControls() else showControls()
+    "hide" -> {
+      sheetShown.value = Sheets.None
+      panelShown.value = Panels.None
+      hideControls()
+    }
+  }
+}
+
+private fun handleShowPanel(data: String) {
+  when (data) {
+    "frame_navigation" -> {
+      sheetShown.value = Sheets.FrameNavigation
+    }
+    else -> {
+      panelShown.value =
+        when (data) {
+          "subtitle_settings" -> Panels.SubtitleSettings
+          "subtitle_delay" -> Panels.SubtitleDelay
+          "audio_delay" -> Panels.AudioDelay
+          "video_filters" -> Panels.VideoFilters
+          else -> Panels.None
         }
     }
   }
+}
 
-  @Suppress("DEPRECATION")
-  private fun forceShowSoftwareKeyboard() {
-    inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+private fun handleSoftwareKeyboard(data: String) {
+  when (data) {
+    "show" -> forceShowSoftwareKeyboard()
+    "hide" -> forceHideSoftwareKeyboard()
+    "toggle" ->
+      if (!inputMethodManager.isActive) {
+        forceShowSoftwareKeyboard()
+      } else {
+        forceHideSoftwareKeyboard()
+      }
   }
+}
 
-  @Suppress("DEPRECATION")
-  private fun forceHideSoftwareKeyboard() {
-    inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0)
-  }
+@Suppress("DEPRECATION")
+private fun forceShowSoftwareKeyboard() {
+  inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_FORCED, 0)
+}
+
+@Suppress("DEPRECATION")
+private fun forceHideSoftwareKeyboard() {
+  inputMethodManager.toggleSoftInput(InputMethodManager.SHOW_IMPLICIT, 0)
+}
 
   // ==================== Gesture Handling ====================
 
@@ -791,9 +764,7 @@ class PlayerViewModel(
   fun toggleFrameNavigationExpanded() {
     val wasExpanded = _isFrameNavigationExpanded.value
     _isFrameNavigationExpanded.update { !it }
-    // Update frame info and pause when expanding (going from false to true)
     if (!wasExpanded) {
-      // Pause the video if it's playing
       if (paused != true) {
         pauseUnpause()
       }
@@ -801,7 +772,6 @@ class PlayerViewModel(
       showFrameInfoOverlay()
       resetFrameNavigationTimer()
     } else {
-      // Cancel timer when manually collapsing
       frameNavigationCollapseJob?.cancel()
     }
   }
@@ -821,7 +791,6 @@ class PlayerViewModel(
       updateFrameInfo()
       withContext(Dispatchers.Main) {
         showFrameInfoOverlay()
-        // Reset the inactivity timer
         resetFrameNavigationTimer()
       }
     }
@@ -838,7 +807,6 @@ class PlayerViewModel(
       updateFrameInfo()
       withContext(Dispatchers.Main) {
         showFrameInfoOverlay()
-        // Reset the inactivity timer
         resetFrameNavigationTimer()
       }
     }
@@ -862,35 +830,28 @@ class PlayerViewModel(
       try {
         val includeSubtitles = playerPreferences.includeSubtitlesInSnapshot.get()
 
-        // Generate filename with timestamp
         val timestamp =
           java.text.SimpleDateFormat("yyyyMMdd_HHmmss", java.util.Locale.getDefault()).format(java.util.Date())
         val filename = "mpv_snapshot_$timestamp.png"
 
-        // Create a temporary file first
         val tempFile = File(context.cacheDir, filename)
 
-        // Take screenshot using MPV to temp file, with or without subtitles
         if (includeSubtitles) {
           MPVLib.command("screenshot-to-file", tempFile.absolutePath, "subtitles")
         } else {
           MPVLib.command("screenshot-to-file", tempFile.absolutePath, "video")
         }
 
-        // Wait a bit for MPV to finish writing the file
         delay(200)
 
-        // Check if file was created
         if (!tempFile.exists() || tempFile.length() == 0L) {
           withContext(Dispatchers.Main) {
-            Toast.makeText(context, "Failed to create screenshot", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "创建截图失败", Toast.LENGTH_SHORT).show()
           }
           return@launch
         }
 
-        // Use different methods based on Android version
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-          // Android 10+ - Use MediaStore with RELATIVE_PATH
           val contentValues =
             android.content.ContentValues().apply {
               put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, filename)
@@ -910,22 +871,18 @@ class PlayerViewModel(
             )
 
           if (imageUri != null) {
-            // Copy temp file to MediaStore
             resolver.openOutputStream(imageUri)?.use { outputStream ->
               tempFile.inputStream().use { inputStream ->
                 inputStream.copyTo(outputStream)
               }
             }
 
-            // Mark as finished
             contentValues.clear()
             contentValues.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
             resolver.update(imageUri, contentValues, null, null)
 
-            // Delete temp file
             tempFile.delete()
 
-            // Show success toast
             withContext(Dispatchers.Main) {
               Toast
                 .makeText(
@@ -938,14 +895,12 @@ class PlayerViewModel(
             throw Exception("Failed to create MediaStore entry")
           }
         } else {
-          // Android 9 and below - Use legacy external storage
           val picturesDir =
             android.os.Environment.getExternalStoragePublicDirectory(
               android.os.Environment.DIRECTORY_PICTURES,
             )
           val snapshotsDir = File(picturesDir, "mpvSnaps")
 
-          // Create directory if it doesn't exist
           if (!snapshotsDir.exists()) {
             val created = snapshotsDir.mkdirs()
             if (!created && !snapshotsDir.exists()) {
@@ -957,7 +912,6 @@ class PlayerViewModel(
           tempFile.copyTo(destFile, overwrite = true)
           tempFile.delete()
 
-          // Notify media scanner about the new file
           android.media.MediaScannerConnection.scanFile(
             context,
             arrayOf(destFile.absolutePath),
@@ -976,7 +930,7 @@ class PlayerViewModel(
         }
       } catch (e: Exception) {
         withContext(Dispatchers.Main) {
-          Toast.makeText(context, "Failed to save snapshot: ${e.message}", Toast.LENGTH_LONG).show()
+          Toast.makeText(context, "保存截图失败：${e.message}", Toast.LENGTH_LONG).show()
         }
       } finally {
         _isSnapshotLoading.value = false
@@ -1022,7 +976,6 @@ class PlayerViewModel(
       RepeatMode.ALL -> RepeatMode.OFF
     }
 
-    // Show overlay update instead of toast
     playerUpdate.value = PlayerUpdates.RepeatMode(_repeatMode.value)
   }
 
@@ -1030,10 +983,8 @@ class PlayerViewModel(
     _shuffleEnabled.value = !_shuffleEnabled.value
     val activity = host as? PlayerActivity
 
-    // Notify activity to handle shuffle state change
     activity?.onShuffleToggled(_shuffleEnabled.value)
 
-    // Show overlay update instead of toast
     playerUpdate.value = PlayerUpdates.Shuffle(_shuffleEnabled.value)
   }
 
