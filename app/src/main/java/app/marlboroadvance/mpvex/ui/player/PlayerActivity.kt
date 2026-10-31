@@ -437,16 +437,12 @@ class PlayerActivity :
 
   @RequiresApi(Build.VERSION_CODES.P)
 private fun handleBackPress() {
-  // 1. 优先判断是否锁定了屏幕
+  // 如果处于锁定状态，直接 return，当做什么都没发生
   if (viewModel.areControlsLocked.value) {
-    // 弹个提示告诉用户锁定了
-    android.widget.Toast.makeText(this, "屏幕已锁定，请先解锁", android.widget.Toast.LENGTH_SHORT).show()
-    // （可选）把控制栏唤出来，让用户能看到解锁按钮在哪
-    viewModel.showControls()
-    return // 拦截，不往下执行
+    return 
   }
 
-  // 2. 如果没锁，按照你的要求，直接退出播放器
+  // 如果没锁，按一次直接退出
   isUserFinishing = true
   finish()
 }
