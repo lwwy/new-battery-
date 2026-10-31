@@ -64,9 +64,7 @@ object GesturePreferencesScreen : Screen {
     Scaffold(
       topBar = {
         TopAppBar(
-          title = {
-            Text(stringResource(R.string.pref_gesture))
-          },
+          title = { Text(stringResource(R.string.pref_gesture)) },
           navigationIcon = {
             IconButton(onClick = backstack::removeLastOrNull) {
               Icon(Icons.AutoMirrored.Default.ArrowBack, null)
@@ -77,11 +75,7 @@ object GesturePreferencesScreen : Screen {
     ) { padding ->
       ProvidePreferenceLocals {
         Column(
-          modifier =
-            Modifier
-              .fillMaxSize()
-              .verticalScroll(rememberScrollState())
-              .padding(padding),
+          modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(padding),
         ) {
           PreferenceCategory(
             title = { Text(text = stringResource(R.string.pref_gesture_double_tap_title)) },
@@ -103,18 +97,18 @@ object GesturePreferencesScreen : Screen {
             values = predefinedValues + listOf(-1),
             valueToText = { value ->
               if (value == -1) {
-                AnnotatedString("Custom")
+                AnnotatedString("自定义")
               } else {
-                AnnotatedString("${value}s")
+                AnnotatedString("${value}秒")
               }
             },
             title = { Text(text = stringResource(id = R.string.pref_player_double_tap_seek_duration)) },
             summary = {
               Text(
                 text = if (isCustomValue) {
-                  "Custom (${doubleTapSeekDuration}s)"
+                  "自定义 (${doubleTapSeekDuration}秒)"
                 } else {
-                  "${doubleTapSeekDuration}s"
+                  "${doubleTapSeekDuration}秒"
                 },
               )
             },
@@ -127,13 +121,13 @@ object GesturePreferencesScreen : Screen {
               text = {
                 Column {
                   Text(
-                    text = "Enter custom seek duration in seconds (1-120)",
+                    text = "输入自定义快进/快退时长（秒，1-120）",
                     modifier = Modifier.padding(bottom = 8.dp),
                   )
                   OutlinedTextField(
                     value = customSeekValue,
                     onValueChange = { customSeekValue = it },
-                    label = { Text("Seconds") },
+                    label = { Text("秒") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -169,15 +163,12 @@ object GesturePreferencesScreen : Screen {
             onValueChange = { preferences.doubleTapSeekAreaWidth.set(it) },
             values = seekAreaValues,
             valueToText = { AnnotatedString("${it}%") },
-            title = { Text(text = "Double Tap Seek Area Width") },
+            title = { Text(text = "双击快进/快退区域宽度") },
             summary = {
-              Text(
-                text = "Current: ${doubleTapSeekAreaWidth}%",
-              )
+              Text(text = "当前：${doubleTapSeekAreaWidth}%")
             },
           )
-
-          val leftDoubleTap by preferences.leftSingleActionGesture.collectAsState()
+                    val leftDoubleTap by preferences.leftSingleActionGesture.collectAsState()
           ListPreference(
             value = leftDoubleTap,
             onValueChange = { preferences.leftSingleActionGesture.set(it) },
@@ -191,8 +182,7 @@ object GesturePreferencesScreen : Screen {
           ListPreference(
             value = centerDoubleTap,
             onValueChange = { preferences.centerSingleActionGesture.set(it) },
-            values =
-              listOf(
+            values = listOf(
                 SingleActionGesture.None,
                 SingleActionGesture.PlayPause,
                 SingleActionGesture.Custom,
@@ -200,8 +190,7 @@ object GesturePreferencesScreen : Screen {
             valueToText = { AnnotatedString(context.getString(it.titleRes)) },
             title = {
               Text(
-                text =
-                  stringResource(
+                text = stringResource(
                     if (useSingleTapForCenter) R.string.pref_gesture_single_tap_center_title else R.string.pref_gesture_double_tap_center_title,
                   ),
               )
@@ -223,34 +212,24 @@ object GesturePreferencesScreen : Screen {
           SwitchPreference(
             value = useSingleTapForCenter,
             onValueChange = { preferences.useSingleTapForCenter.set(it) },
-            title = {
-              Text(
-                text = stringResource(id = R.string.pref_gesture_use_single_tap_for_center_title),
-              )
-            },
-            summary = {
-              Text(
-                text = stringResource(id = R.string.pref_gesture_use_single_tap_for_center_summary),
-              )
-            },
+            title = { Text(text = stringResource(id = R.string.pref_gesture_use_single_tap_for_center_title)) },
+            summary = { Text(text = stringResource(id = R.string.pref_gesture_use_single_tap_for_center_summary)) },
           )
 
-          val doubleTapKeyCodes =
-            listOf(
+          val doubleTapKeyCodes = listOf(
               CustomKeyCodes.DoubleTapLeft,
               CustomKeyCodes.DoubleTapCenter,
               CustomKeyCodes.DoubleTapRight,
             ).map { it.keyCode }.toImmutableList()
+            
           FooterPreference(
             summary = {
-              var annotatedString =
-                buildAnnotatedString {
+              var annotatedString = buildAnnotatedString {
                   append(stringResource(R.string.pref_gesture_double_tap_custom_info))
                 }
 
               doubleTapKeyCodes.forEach { keyCode ->
-                annotatedString =
-                  buildAnnotatedString {
+                annotatedString = buildAnnotatedString {
                     val startIndex = annotatedString.indexOf(keyCode)
                     val endIndex = startIndex + keyCode.length
                     append(annotatedString)
@@ -261,7 +240,6 @@ object GesturePreferencesScreen : Screen {
                     )
                   }
               }
-
               Text(text = annotatedString)
             },
           )
@@ -282,8 +260,7 @@ object GesturePreferencesScreen : Screen {
           ListPreference(
             value = mediaPlayGesture,
             onValueChange = { preferences.mediaPlayGesture.set(it) },
-            values =
-              listOf(
+            values = listOf(
                 SingleActionGesture.None,
                 SingleActionGesture.PlayPause,
                 SingleActionGesture.Custom,
@@ -302,22 +279,20 @@ object GesturePreferencesScreen : Screen {
             summary = { Text(text = stringResource(mediaNextGesture.titleRes)) },
           )
 
-          val mediaKeyCodes =
-            listOf(
+          val mediaKeyCodes = listOf(
               CustomKeyCodes.MediaPrevious,
               CustomKeyCodes.MediaPlay,
               CustomKeyCodes.MediaNext,
             ).map { it.keyCode }.toImmutableList()
+            
           FooterPreference(
             summary = {
-              var annotatedString =
-                buildAnnotatedString {
+              var annotatedString = buildAnnotatedString {
                   append(stringResource(R.string.pref_gesture_media_custom_info))
                 }
 
               mediaKeyCodes.forEach { keyCode ->
-                annotatedString =
-                  buildAnnotatedString {
+                annotatedString = buildAnnotatedString {
                     val startIndex = annotatedString.indexOf(keyCode)
                     val endIndex = startIndex + keyCode.length
                     append(annotatedString)
@@ -328,7 +303,6 @@ object GesturePreferencesScreen : Screen {
                     )
                   }
               }
-
               Text(text = annotatedString)
             },
           )
@@ -340,16 +314,8 @@ object GesturePreferencesScreen : Screen {
           SwitchPreference(
             value = tapThumbnailToSelect,
             onValueChange = { preferences.tapThumbnailToSelect.set(it) },
-            title = {
-              Text(
-                text = stringResource(id = R.string.pref_gesture_tap_thumbnail_to_select_title),
-              )
-            },
-            summary = {
-              Text(
-                text = stringResource(id = R.string.pref_gesture_tap_thumbnail_to_select_summary),
-              )
-            },
+            title = { Text(text = stringResource(id = R.string.pref_gesture_tap_thumbnail_to_select_title)) },
+            summary = { Text(text = stringResource(id = R.string.pref_gesture_tap_thumbnail_to_select_summary)) },
           )
         }
       }
