@@ -64,7 +64,7 @@ object DecoderPreferencesScreen : Screen {
             onValueChange = {
               preferences.tryHWDecoding.set(it)
             },
-            title = { Text(stringResource(R.string.pref_decoder_try_hw_dec_title)) },
+            title = { Text("尝试硬件解码") },
           )
           val gpuNext by preferences.gpuNext.collectAsState()
           SwitchPreference(
