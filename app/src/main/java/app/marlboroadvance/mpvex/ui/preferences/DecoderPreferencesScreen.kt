@@ -81,7 +81,16 @@ object DecoderPreferencesScreen : Screen {
             onValueChange = { preferences.debanding.set(it) },
             values = Debanding.entries,
             title = { Text(stringResource(R.string.pref_decoder_debanding_title)) },
-            summary = { Text(debanding.name) },
+            summary = { 
+              Text(
+                when (debanding.name) {
+                  "None" -> "无"
+                  "CPU" -> "CPU"
+                  "GPU" -> "GPU"
+                  else -> debanding.name
+                }
+              ) 
+            },
           )
           val useYUV420p by preferences.useYUV420P.collectAsState()
           SwitchPreference(
