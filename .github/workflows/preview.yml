@@ -23,10 +23,16 @@ jobs:
         run: chmod +x ./gradlew
 
       - name: Build with Gradle
-        run: ./gradlew assemblePreview -Pandroid.injected.build.abi=arm64-v8a
+        run: ./gradlew assemblePreview
 
-      - name: Upload all artifacts
+      - name: Copy arm64 APK to output
+        run: |
+          mkdir -p output
+          # 只要把生成的目录里带 arm64 的 apk 抓过来就行了
+          cp app/build/outputs/apk/preview/*arm64-v8a*.apk output/mpvEx-preview-arm64.apk
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: preview-apks
-          path: app/build/outputs/apk/preview/*arm64-v8a*.apk
+          path: output/
