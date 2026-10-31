@@ -150,10 +150,10 @@ data class ControlLayoutEditorScreen(
     val title =
       remember(region) {
         when (region) {
-          ControlRegion.TOP_RIGHT -> "Edit Top Right" // TODO: strings
-          ControlRegion.BOTTOM_RIGHT -> "Edit Bottom Right" // TODO: strings
-          ControlRegion.BOTTOM_LEFT -> "Edit Bottom Left" // TODO: strings
-          ControlRegion.PORTRAIT_BOTTOM -> "Edit Portrait Bottom" // TODO: strings
+          ControlRegion.TOP_RIGHT -> "编辑右上角控件"
+          ControlRegion.BOTTOM_RIGHT -> "编辑右下角控件"
+          ControlRegion.BOTTOM_LEFT -> "编辑左下角控件"
+          ControlRegion.PORTRAIT_BOTTOM -> "编辑竖屏底部控件"
         }
       }
 
@@ -163,7 +163,7 @@ data class ControlLayoutEditorScreen(
           title = { Text(text = title) },
           navigationIcon = {
             IconButton(onClick = backstack::removeLastOrNull) {
-              Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "Back")
+              Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = "返回")
             }
           },
         )
@@ -178,7 +178,7 @@ data class ControlLayoutEditorScreen(
               .verticalScroll(rememberScrollState()),
         ) {
           // --- 1. Selected Controls ---
-          PreferenceCategory(title = { Text("Selected") })
+          PreferenceCategory(title = { Text("已选择") })
           FlowRow(
             modifier =
               Modifier
@@ -189,7 +189,7 @@ data class ControlLayoutEditorScreen(
           ) {
             if (selectedButtons.isEmpty()) {
               Text(
-                text = "Click buttons from the 'Available' list below to add them here.",
+                text = "点击下方“可用”列表中的按钮以添加到这里。",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(vertical = 16.dp),
@@ -210,7 +210,7 @@ data class ControlLayoutEditorScreen(
           }
 
           // --- 2. Available Controls ---
-          PreferenceCategory(title = { Text("Available") })
+          PreferenceCategory(title = { Text("可用") })
           FlowRow(
             modifier =
               Modifier
@@ -247,7 +247,6 @@ data class ControlLayoutEditorScreen(
     }
   }
 }
-
 /**
  * A simple "Quick Settings" style chip for a player button.
  * Renders text or icons based on the button type.
@@ -305,7 +304,7 @@ private fun PlayerButtonChip(
         when (button) {
           PlayerButton.VIDEO_TITLE -> {
             Text(
-              text = "Video Title", // TODO: strings
+              text = "视频标题", 
               fontSize = 15.sp, // Increased font size
               textAlign = TextAlign.Center,
               lineHeight = 14.sp,
@@ -323,7 +322,7 @@ private fun PlayerButtonChip(
                 modifier = Modifier.size(24.dp), // Smaller icon
               )
               Text(
-                text = "1:06 • Chapter 1", // TODO: strings
+                text = "1:06 • 第1章", 
                 fontSize = 15.sp, // Increased font size
                 textAlign = TextAlign.Center,
                 lineHeight = 14.sp,
