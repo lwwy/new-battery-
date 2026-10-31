@@ -716,7 +716,7 @@ override fun onStart() {
 if (isPausedByScreenOff) {
   android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
     MPVLib.setPropertyBoolean("pause", false)
-  }, 1000) 
+  }, 500) 
   isPausedByScreenOff = false // 恢复状态
 }
 
