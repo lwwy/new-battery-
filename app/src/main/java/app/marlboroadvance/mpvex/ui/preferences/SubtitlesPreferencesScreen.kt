@@ -75,9 +75,9 @@ object SubtitlesPreferencesScreen : Screen {
         TopAppBar(
           title = { Text(stringResource(R.string.pref_subtitles)) },
           navigationIcon = {
-            IconButton(
-              onClick = backstack::removeLastOrNull,
-            ) { Icon(Icons.AutoMirrored.Outlined.ArrowBack, null) }
+            IconButton(onClick = backstack::removeLastOrNull) {
+              Icon(Icons.AutoMirrored.Outlined.ArrowBack, null)
+            }
           },
         )
       },
@@ -100,7 +100,6 @@ object SubtitlesPreferencesScreen : Screen {
             context.contentResolver.takePersistableUriPermission(uri, flags)
             preferences.fontsFolder.set(uri.toString())
 
-            // Copy fonts immediately in background
             kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
               isLoadingFonts = true
               copyFontsFromDirectory(context, fileManager, uri.toString())
@@ -111,13 +110,11 @@ object SubtitlesPreferencesScreen : Screen {
             }
           }
 
-        // Load fonts when folder changes or trigger is fired
         LaunchedEffect(fontsFolder, fontLoadTrigger) {
           customFontEntries = loadCustomFontEntries(context)
           availableFonts = listOf("Default") + customFontEntries.map { it.familyName }
         }
 
-        // Auto-refresh fonts on app restart if directory is set
         LaunchedEffect(Unit) {
           if (fontsFolder.isNotBlank()) {
             isLoadingFonts = true
@@ -130,13 +127,8 @@ object SubtitlesPreferencesScreen : Screen {
         }
 
         Column(
-          modifier =
-            Modifier
-              .fillMaxSize()
-              .verticalScroll(rememberScrollState())
-              .padding(padding),
+          modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(padding),
         ) {
-          // === GENERAL SECTION ===
           PreferenceCategory(
             title = { Text(stringResource(R.string.general), style = MaterialTheme.typography.titleMedium) },
           )
@@ -175,23 +167,15 @@ object SubtitlesPreferencesScreen : Screen {
             summary = { Text(stringResource(R.string.pref_subtitles_autoload_summary)) },
           )
 
-          // Directory picker preference with reload and clear icons on the right
           Box(
-            modifier =
-              Modifier
-                .fillMaxWidth()
-                .clickable { locationPicker.launch(null) }
-                .padding(vertical = 16.dp, horizontal = 16.dp),
+            modifier = Modifier.fillMaxWidth().clickable { locationPicker.launch(null) }.padding(vertical = 16.dp, horizontal = 16.dp),
           ) {
             Row(
               modifier = Modifier.fillMaxWidth(),
               verticalAlignment = Alignment.CenterVertically,
               horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-              // Left side: Title + summary
-              Column(
-                modifier = Modifier.weight(1f),
-              ) {
+              Column(modifier = Modifier.weight(1f)) {
                 Text(
                   stringResource(R.string.pref_subtitles_fonts_dir),
                   style = MaterialTheme.typography.titleMedium,
@@ -217,16 +201,10 @@ object SubtitlesPreferencesScreen : Screen {
                   }
                 }
               }
-
-              // Right side: Action icons
               if (fontsFolder.isNotBlank()) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                  // Refresh icon or loading spinner
                   if (isLoadingFonts) {
-                    Box(
-                      modifier = Modifier.size(48.dp),
-                      contentAlignment = Alignment.Center,
-                    ) {
+                    Box(modifier = Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                       CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         strokeWidth = 2.dp,
@@ -253,8 +231,6 @@ object SubtitlesPreferencesScreen : Screen {
                       )
                     }
                   }
-
-                  // Clear icon (always visible when directory is set)
                   IconButton(
                     onClick = {
                       preferences.fontsFolder.set("")
@@ -271,47 +247,32 @@ object SubtitlesPreferencesScreen : Screen {
               }
             }
           }
-
-          if (availableFonts.isNotEmpty()) {
-            // Font picker dialog state
+                    if (availableFonts.isNotEmpty()) {
             var showFontPicker by remember { mutableStateOf(false) }
-
             val isCustomFontSelected = selectedFont.isNotBlank() && selectedFont != "Default"
 
-            // Font selection with clear icon
             Box(
-              modifier =
-                Modifier
-                  .fillMaxWidth()
-                  .clickable { showFontPicker = true }
-                  .padding(vertical = 16.dp, horizontal = 16.dp),
+              modifier = Modifier.fillMaxWidth().clickable { showFontPicker = true }.padding(vertical = 16.dp, horizontal = 16.dp),
             ) {
               Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
               ) {
-                // Left side: Title + selected font
-                Column(
-                  modifier = Modifier.weight(1f),
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                   Text(
                     stringResource(R.string.player_sheets_sub_typography_font),
                     style = MaterialTheme.typography.titleMedium,
                   )
                   Text(
-                    if (selectedFont.isBlank()) "Default" else selectedFont,
+                    if (selectedFont.isBlank()) "默认" else selectedFont,
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                   )
                 }
-
-                // Right side: Clear icon (only shown if custom font is selected)
                 if (isCustomFontSelected) {
                   IconButton(
-                    onClick = {
-                      preferences.font.set("")
-                    },
+                    onClick = { preferences.font.set("") },
                   ) {
                     Icon(
                       Icons.Default.Clear,
@@ -323,15 +284,12 @@ object SubtitlesPreferencesScreen : Screen {
               }
             }
 
-            // Font picker dialog
             if (showFontPicker) {
               androidx.compose.material3.AlertDialog(
                 onDismissRequest = { showFontPicker = false },
                 title = { Text(stringResource(R.string.player_sheets_sub_typography_font)) },
                 text = {
-                  androidx.compose.foundation.lazy.LazyColumn(
-                    modifier = Modifier.fillMaxWidth(),
-                  ) {
+                  androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(availableFonts.size) { index ->
                       val font = availableFonts[index]
                       val typeface = if (font == "Default") {
@@ -349,7 +307,7 @@ object SubtitlesPreferencesScreen : Screen {
                         modifier = Modifier.fillMaxWidth(),
                       ) {
                         Text(
-                          font,
+                          if (font == "Default") "默认" else font,
                           modifier = Modifier.fillMaxWidth(),
                           color = MaterialTheme.colorScheme.onSurface,
                           style =
