@@ -114,7 +114,7 @@ object RecentlyPlayedScreen : Screen {
     Scaffold(
       topBar = {
         BrowserTopBar(
-          title = "Recently Played",
+          title = "最近播放",
           isInSelectionMode = selectionManager.isInSelectionMode,
           selectedCount = selectionManager.selectedCount,
           totalCount = recentItems.size,
@@ -143,8 +143,8 @@ object RecentlyPlayedScreen : Screen {
           ) {
             EmptyState(
               icon = Icons.Filled.History,
-              title = "Recently Played is disabled",
-              message = "Enable it in Advanced Settings to track your playback history",
+              title = "最近播放已禁用",
+              message = "在“高级设置”中启用它以记录您的播放历史",
             )
           }
         }
@@ -173,8 +173,8 @@ object RecentlyPlayedScreen : Screen {
           ) {
             EmptyState(
               icon = Icons.Filled.History,
-              title = "No recently played videos",
-              message = "Videos you play will appear here",
+              title = "暂无最近播放的视频",
+              message = "您播放过的视频将显示在这里",
             )
           }
         }
@@ -202,10 +202,9 @@ object RecentlyPlayedScreen : Screen {
       if (deleteDialogOpen.value && selectionManager.isInSelectionMode) {
         // Remove selected items from history
         val itemCount = selectionManager.selectedCount
-        val itemText = if (itemCount == 1) "item" else "items"
         ConfirmDialog(
-          title = "Remove $itemCount $itemText from history?",
-          subtitle = "This will remove the selected $itemText from your recently played list. The video files will not be deleted.",
+          title = "从历史记录中移除 $itemCount 项？",
+          subtitle = "这将从最近播放列表中移除所选项。视频文件本身不会被删除。",
           onConfirm = {
             selectionManager.deleteSelected()
             deleteDialogOpen.value = false
@@ -216,7 +215,6 @@ object RecentlyPlayedScreen : Screen {
     }
   }
 }
-
 @Composable
 private fun RecentItemsContent(
   recentItems: List<RecentlyPlayedItem>,
@@ -341,5 +339,3 @@ private fun RecentItemsContent(
     }
   }
 }
-
-
