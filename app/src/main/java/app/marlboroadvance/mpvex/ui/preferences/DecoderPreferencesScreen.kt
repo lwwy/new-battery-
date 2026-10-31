@@ -16,7 +16,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.AnnotatedString
 import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.preferences.DecoderPreferences
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
@@ -36,6 +38,7 @@ object DecoderPreferencesScreen : Screen {
   override fun Content() {
     val preferences = koinInject<DecoderPreferences>()
     val backstack = LocalBackStack.current
+    val context = LocalContext.current // 获取 Context 用于读取字符串资源
     Scaffold(
       topBar = {
         TopAppBar(
@@ -81,15 +84,13 @@ object DecoderPreferencesScreen : Screen {
             onValueChange = { preferences.debanding.set(it) },
             values = Debanding.entries,
             title = { Text(stringResource(R.string.pref_decoder_debanding_title)) },
+            // 👇👇👇 关键修改：让它去读取 XML 里的中文，而不是枚举的英文名 👇👇👇
+            valueToText = { debandingValue ->
+              AnnotatedString(context.getString(debandingValue.titleRes))
+            },
+            // 👆👆👆 修改结束 👆👆👆
             summary = { 
-              Text(
-                when (debanding.name) {
-                  "None" -> "无"
-                  "CPU" -> "CPU"
-                  "GPU" -> "GPU"
-                  else -> debanding.name
-                }
-              ) 
+              Text(context.getString(debanding.titleRes))
             },
           )
           val useYUV420p by preferences.useYUV420P.collectAsState()
