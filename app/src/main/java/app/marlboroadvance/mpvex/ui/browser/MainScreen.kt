@@ -77,22 +77,22 @@ object MainScreen : Screen {
     // --- Floating Navigation Bar Items ---
     val floatingNavigationItems = listOf(
       FloatingNavigationItem(
-        label = "Folders",
+        label = "文件夹",
         selectedIcon = Icons.Filled.Folder,
         unselectedIcon = Icons.Outlined.Folder,
       ),
       FloatingNavigationItem(
-        label = "Recent",
+        label = "最近播放",
         selectedIcon = Icons.Filled.History,
         unselectedIcon = Icons.Outlined.History,
       ),
       FloatingNavigationItem(
-        label = "Playlist",
+        label = "播放列表",
         selectedIcon = Icons.Filled.PlaylistPlay,
         unselectedIcon = Icons.Outlined.PlaylistPlay,
       ),
       FloatingNavigationItem(
-        label = "Network",
+        label = "网络",
         selectedIcon = Icons.Filled.Wifi,
         unselectedIcon = Icons.Outlined.Wifi,
       ),
