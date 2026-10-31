@@ -1040,16 +1040,13 @@ fun PlayerControls(
             activity = activity,
           )
         }
-        // 👇👇👇 请把电池代码粘贴在两个大括号中间 👇👇👇
         BatteryIndicator(
-          modifier = Modifier
-            .constrainAs(batteryIndicator) {
-              top.linkTo(parent.top, margin = 36.dp)
-              end.linkTo(parent.end, margin = 16.dp)
-            }
-            .zIndex(10f)
-        )
-        // 👆👆👆 粘贴在这里 👆👆👆
+  modifier = Modifier
+    .constrainAs(batteryIndicator) {
+      top.linkTo(parent.top, margin = 36.dp)
+      end.linkTo(parent.end, margin = 16.dp)
+    }
+)
       }
     }
 
