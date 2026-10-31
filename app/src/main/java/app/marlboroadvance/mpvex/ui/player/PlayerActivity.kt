@@ -436,29 +436,20 @@ class PlayerActivity :
   }
 
   @RequiresApi(Build.VERSION_CODES.P)
-  private fun handleBackPress() {
-    // Dismiss overlays first
-    if (viewModel.sheetShown.value != Sheets.None) {
-      viewModel.sheetShown.update { Sheets.None }
-      viewModel.showControls()
-      return
-    }
-
-    if (viewModel.panelShown.value != Panels.None) {
-      viewModel.panelShown.update { Panels.None }
-      viewModel.showControls()
-      return
-    }
-
-    if (!viewModel.controlsShown.value) {
-      viewModel.showControls()
-      return
-    }
-
-    isUserFinishing = true
-    finish()
+private fun handleBackPress() {
+  // 1. 优先判断是否锁定了屏幕
+  if (viewModel.areControlsLocked.value) {
+    // 弹个提示告诉用户锁定了
+    android.widget.Toast.makeText(this, "屏幕已锁定，请先解锁", android.widget.Toast.LENGTH_SHORT).show()
+    // （可选）把控制栏唤出来，让用户能看到解锁按钮在哪
+    viewModel.showControls()
+    return // 拦截，不往下执行
   }
 
+  // 2. 如果没锁，按照你的要求，直接退出播放器
+  isUserFinishing = true
+  finish()
+}
   @RequiresApi(Build.VERSION_CODES.P)
   private fun setupPlayerControls() {
     binding.controls.setContent {
