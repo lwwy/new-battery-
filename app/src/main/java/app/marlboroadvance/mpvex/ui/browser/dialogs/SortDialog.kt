@@ -133,10 +133,6 @@ data class ViewModeSelector(
   val onViewModeChange: (Boolean) -> Unit,
 )
 
-// -----------------------------------------------------------------------------
-// Consolidated internal composable for sort UI (Material You styling)
-// -----------------------------------------------------------------------------
-
 @Composable
 private fun SortTypeSelector(
   sortType: String,
@@ -150,7 +146,7 @@ private fun SortTypeSelector(
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     Text(
-      text = "Sort by",
+      text = "排序方式",
       style = MaterialTheme.typography.titleMedium,
       fontWeight = FontWeight.Medium,
       color = MaterialTheme.colorScheme.onSurface,
@@ -218,7 +214,6 @@ private fun SortTypeSelector(
     }
   }
 }
-
 @Composable
 private fun SortOrderSelector(
   sortOrderAsc: Boolean,
@@ -235,7 +230,7 @@ private fun SortOrderSelector(
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     Text(
-      text = "Order",
+      text = "顺序",
       style = MaterialTheme.typography.titleMedium,
       fontWeight = FontWeight.Medium,
       color = MaterialTheme.colorScheme.onSurface,
@@ -326,7 +321,7 @@ private fun VisibilityTogglesSection(
     verticalArrangement = Arrangement.spacedBy(12.dp),
   ) {
     Text(
-      text = "Fields",
+      text = "显示字段",
       style = MaterialTheme.typography.titleMedium,
       fontWeight = FontWeight.Medium,
       color = MaterialTheme.colorScheme.onSurface,
@@ -352,7 +347,7 @@ private fun VisibilityTogglesSection(
               {
                 Icon(
                   imageVector = Icons.Filled.Check,
-                  contentDescription = "Selected",
+                  contentDescription = "已选择",
                   modifier = Modifier.size(FilterChipDefaults.IconSize),
                 )
               }
