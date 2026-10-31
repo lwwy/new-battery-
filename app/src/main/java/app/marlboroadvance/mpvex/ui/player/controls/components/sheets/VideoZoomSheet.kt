@@ -92,8 +92,8 @@ private fun ZoomVideoSheet(
       value = zoom,
       valueText =
         when {
-          isZero && isDefault -> "%.2fx (default)".format(zoom)
-          isDefault -> "%.2fx (default)".format(zoom)
+          isZero && isDefault -> "%.2fx (默认)".format(zoom)
+          isDefault -> "%.2fx (默认)".format(zoom)
           isZero -> "%.2fx".format(zoom)
           else -> "%.2fx".format(zoom)
         },
