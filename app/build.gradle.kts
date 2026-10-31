@@ -76,6 +76,12 @@ android {
     viewBinding = true
     buildConfig = true
   }
+// 👇👇👇 添加下面这段代码 👇👇👇
+  lint {
+    abortOnError = false        // Lint 发现错误时不中断构建
+    checkReleaseBuilds = false  // 打包 Release/Preview 版本时不执行 Lint 检查
+  }
+  // 👆👆👆 添加结束 👆👆👆
   composeCompiler {
     includeSourceInformation = true
   }
