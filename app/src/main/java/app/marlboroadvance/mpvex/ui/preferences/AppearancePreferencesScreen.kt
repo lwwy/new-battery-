@@ -191,10 +191,10 @@ object AppearancePreferencesScreen : Screen {
             value = autoScrollToLastPlayed,
             onValueChange = { browserPreferences.autoScrollToLastPlayed.set(it) },
             title = {
-              Text(text = "Auto-scroll to last played")
+              Text(text = "自动滚动到上次播放项")
             },
             summary = {
-              Text(text = "Automatically scroll to the last played video when opening video lists")
+              Text(text = "打开视频列表时自动滚动到上次播放的视频")
             },
           )
 
