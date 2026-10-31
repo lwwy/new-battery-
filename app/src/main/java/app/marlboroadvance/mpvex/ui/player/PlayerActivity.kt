@@ -2207,17 +2207,7 @@ if (isPausedByScreenOff) {
         return true
       }
 
-      KeyEvent.KEYCODE_VOLUME_UP -> {
-        viewModel.changeVolumeBy(1)
-        viewModel.displayVolumeSlider()
-        return true
-      }
-
-      KeyEvent.KEYCODE_VOLUME_DOWN -> {
-        viewModel.changeVolumeBy(-1)
-        viewModel.displayVolumeSlider()
-        return true
-      }
+  
 
       KeyEvent.KEYCODE_MEDIA_STOP -> {
         finishAndRemoveTask()
@@ -2249,13 +2239,19 @@ if (isPausedByScreenOff) {
    * @return true if event was handled, false otherwise
    */
   override fun onKeyUp(
-    keyCode: Int,
-    event: KeyEvent?,
-  ): Boolean {
-    event?.let {
-      if (player.onKey(it)) return true
-    }
+  keyCode: Int,
+  event: KeyEvent?,
+): Boolean {
+  // 👇 新增：如果按的是音量键，直接交给系统处理，不交给 mpv
+  if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
     return super.onKeyUp(keyCode, event)
+  }
+
+  // 原有的 mpv 按键处理
+  event?.let {
+    if (player.onKey(it)) return true
+  }
+  return super.onKeyUp(keyCode, event)
   }
 
   // ==================== System UI Management ====================
