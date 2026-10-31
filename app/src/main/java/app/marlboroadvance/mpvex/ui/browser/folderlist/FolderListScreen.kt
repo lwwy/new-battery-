@@ -126,11 +126,9 @@ object FolderListScreen : Screen {
     val advancedPreferences = koinInject<app.marlboroadvance.mpvex.preferences.AdvancedPreferences>()
     val enableRecentlyPlayed by advancedPreferences.enableRecentlyPlayed.collectAsState()
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    // Using MediaFileRepository singleton directly
     val keyboardController = LocalSoftwareKeyboardController.current
     val focusRequester = remember { FocusRequester() }
 
-    // UI State
     val listState = rememberLazyListState()
     val isRefreshing = remember { mutableStateOf(false) }
     val showLinkDialog = remember { mutableStateOf(false) }
@@ -143,13 +141,9 @@ object FolderListScreen : Screen {
     var allVideos by remember { mutableStateOf<List<Video>>(emptyList()) }
     var videosLoaded by remember { mutableStateOf(false) }
 
-
-
-    // Sorting
     val folderSortType by browserPreferences.folderSortType.collectAsState()
     val folderSortOrder by browserPreferences.folderSortOrder.collectAsState()
 
-    // View mode
     val sortedFolders =
       remember(videoFolders, folderSortType, folderSortOrder) {
         SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder)
@@ -163,28 +157,24 @@ object FolderListScreen : Screen {
       sortedFolders
     }
 
-    // Selection manager (folders handle deletion through videos)
     val selectionManager =
       rememberSelectionManager(
         items = sortedFolders,
         getId = { it.bucketId },
         onDeleteItems = { folders ->
-          // Delete all videos in selected folders via ViewModel
           val ids = folders.map { it.bucketId }.toSet()
           val videos = MediaFileRepository.getVideosForBuckets(context, ids)
           viewModel.deleteVideos(videos)
-          Pair(videos.size, 0) // Return (successCount, failureCount)
+          Pair(videos.size, 0)
         },
         onOperationComplete = { viewModel.refresh() },
       )
 
-    // Permissions
     val permissionState =
       PermissionUtils.handleStoragePermission(
         onPermissionGranted = { viewModel.refresh() },
       )
 
-    // File picker
     val filePicker =
       rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
@@ -200,19 +190,16 @@ object FolderListScreen : Screen {
         }
       }
 
-    // Effects
     LaunchedEffect(Unit) {
       hasRecentlyPlayed =
         app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
           .hasRecentlyPlayed()
     }
 
-    // Listen for lifecycle resume events to refresh new video counts when coming back
     DisposableEffect(lifecycleOwner) {
       val observer =
         LifecycleEventObserver { _, event ->
           if (event == Lifecycle.Event.ON_RESUME) {
-            // Recalculate new video counts when returning to the screen
             viewModel.recalculateNewVideoCounts()
           }
         }
@@ -232,7 +219,6 @@ object FolderListScreen : Screen {
 
     LaunchedEffect(isSearching) {
       if (isSearching && !videosLoaded) {
-        // Load all videos across all folders using all bucketIds
         val bucketIds = videoFolders.map { it.bucketId }.toSet()
         allVideos = MediaFileRepository.getVideosForBuckets(context, bucketIds)
         videosLoaded = true
@@ -255,7 +241,6 @@ object FolderListScreen : Screen {
       }
     } else emptyList()
 
-    // Predictive back: Only intercept when in selection mode OR search mode
     androidx.activity.compose.BackHandler(enabled = selectionManager.isInSelectionMode || isSearching) {
       when {
         selectionManager.isInSelectionMode -> selectionManager.clear()
@@ -269,7 +254,6 @@ object FolderListScreen : Screen {
     Scaffold(
       topBar = {
         if (isSearching) {
-          // Search mode - show search bar instead of top bar
           SearchBar(
             inputField = {
               SearchBarDefaults.InputField(
@@ -280,22 +264,11 @@ object FolderListScreen : Screen {
                 onExpandedChange = { },
                 placeholder = { Text("搜索视频...") },
                 leadingIcon = {
-                  Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = "搜索",
-                  )
+                  Icon(imageVector = Icons.Filled.Search, contentDescription = "搜索")
                 },
                 trailingIcon = {
-                  IconButton(
-                    onClick = {
-                      isSearching = false
-                      searchQuery = ""
-                    },
-                  ) {
-                    Icon(
-                      imageVector = Icons.Filled.Close,
-                      contentDescription = "取消",
-                    )
+                  IconButton(onClick = { isSearching = false; searchQuery = "" }) {
+                    Icon(imageVector = Icons.Filled.Close, contentDescription = "取消")
                   }
                 },
                 modifier = Modifier.focusRequester(focusRequester),
@@ -303,21 +276,17 @@ object FolderListScreen : Screen {
             },
             expanded = false,
             onExpandedChange = { },
-            modifier = Modifier
-              .fillMaxWidth()
-              .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(28.dp),
             tonalElevation = 6.dp,
-          ) {
-            // Empty content for SearchBar
-          }
+          ) {}
         } else {
           BrowserTopBar(
             title = stringResource(app.marlboroadvance.mpvex.R.string.app_name),
             isInSelectionMode = selectionManager.isInSelectionMode,
             selectedCount = selectionManager.selectedCount,
             totalCount = videoFolders.size,
-            onBackClick = null, // No back button for folder list (root screen)
+            onBackClick = null,
             onCancelSelection = { selectionManager.clear() },
             onSortClick = { sortDialogOpen.value = true },
             onSettingsClick = { backstack.add(PreferencesScreen) },
@@ -327,7 +296,6 @@ object FolderListScreen : Screen {
             isSingleSelection = selectionManager.isSingleSelection,
             onInfoClick = null,
             onShareClick = {
-              // Share all videos across selected folders with a single chooser
               coroutineScope.launch {
                 val selectedIds = selectionManager.getSelectedItems().map { it.bucketId }.toSet()
                 val allVideos = MediaFileRepository.getVideosForBuckets(context, selectedIds)
@@ -337,16 +305,13 @@ object FolderListScreen : Screen {
               }
             },
             onPlayClick = {
-              // Play all videos from selected folders as a playlist
               coroutineScope.launch {
                 val selectedIds = selectionManager.getSelectedItems().map { it.bucketId }.toSet()
                 val allVideos = MediaFileRepository.getVideosForBuckets(context, selectedIds)
                 if (allVideos.isNotEmpty()) {
                   if (allVideos.size == 1) {
-                    // Single video - play normally
                     MediaUtils.playFile(allVideos.first(), context)
                   } else {
-                    // Multiple videos - play as playlist
                     val intent = Intent(Intent.ACTION_VIEW, allVideos.first().uri)
                     intent.setClass(context, app.marlboroadvance.mpvex.ui.player.PlayerActivity::class.java)
                     intent.putExtra("internal_launch", true)
@@ -355,13 +320,11 @@ object FolderListScreen : Screen {
                     intent.putExtra("launch_source", "playlist")
                     context.startActivity(intent)
                   }
-                  // Clear selection after starting playback
                   selectionManager.clear()
                 }
               }
             },
             onBlacklistClick = {
-              // Add selected folders to blacklist
               coroutineScope.launch {
                 val selectedFolders = selectionManager.getSelectedItems()
                 val blacklistedFolders = foldersPreferences.blacklistedFolders.get().toMutableSet()
@@ -369,11 +332,8 @@ object FolderListScreen : Screen {
                   blacklistedFolders.add(folder.path)
                 }
                 foldersPreferences.blacklistedFolders.set(blacklistedFolders)
-                // Clear selection after blacklisting
                 selectionManager.clear()
-                // Refresh folder list to apply blacklist
                 viewModel.refresh()
-                // Show toast to confirm
                 android.widget.Toast.makeText(
                   context,
                   context.getString(app.marlboroadvance.mpvex.R.string.pref_folders_blacklisted),
@@ -394,14 +354,10 @@ object FolderListScreen : Screen {
       when (permissionState.status) {
         PermissionStatus.Granted -> {
           if (isSearching) {
-            // Search results
             if (searchQuery.isNotBlank() && videosLoaded) {
               if (filteredVideos.isEmpty()) {
                 Box(
-                  modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(bottom = 80.dp), // Account for bottom navigation bar
+                  modifier = Modifier.fillMaxSize().padding(padding).padding(bottom = 80.dp),
                   contentAlignment = Alignment.Center,
                 ) {
                   EmptyState(
@@ -412,24 +368,13 @@ object FolderListScreen : Screen {
                 }
               } else {
                 val searchListState = rememberLazyListState()
-
-                // Check if at top of list to hide scrollbar
-                val isAtTop by remember {
-                  derivedStateOf {
-                    searchListState.firstVisibleItemIndex == 0 && searchListState.firstVisibleItemScrollOffset == 0
-                  }
-                }
-
-                // Only show scrollbar if list has more than 20 items
+                val isAtTop by remember { derivedStateOf { searchListState.firstVisibleItemIndex == 0 && searchListState.firstVisibleItemScrollOffset == 0 } }
                 val hasEnoughItems = filteredVideos.size > 20
-
-                // Animate scrollbar alpha
                 val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
                   targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
                   animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
                   label = "scrollbarAlpha",
                 )
-
                 LazyColumnScrollbar(
                   state = searchListState,
                   settings = ScrollbarSettings(
@@ -439,9 +384,7 @@ object FolderListScreen : Screen {
                 ) {
                   LazyColumn(
                     state = searchListState,
-                    modifier = Modifier
-                      .fillMaxSize()
-                      .padding(padding),
+                    modifier = Modifier.fillMaxSize().padding(padding),
                     contentPadding = PaddingValues(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 88.dp),
                   ) {
                     items(filteredVideos) { video ->
@@ -460,7 +403,6 @@ object FolderListScreen : Screen {
               }
             }
           } else {
-            // Normal mode - show folder list
             FolderListContent(
               folders = filteredFolders,
               foldersWithNewCount = foldersWithNewCount,
@@ -485,7 +427,6 @@ object FolderListScreen : Screen {
             )
           }
         }
-
         is PermissionStatus.Denied -> {
           PermissionDeniedState(
             onRequestPermission = { permissionState.launchPermissionRequest() },
@@ -493,9 +434,7 @@ object FolderListScreen : Screen {
           )
         }
       }
-
-      // Dialogs
-      PlayLinkSheet(
+            PlayLinkSheet(
         isOpen = showLinkDialog.value,
         onDismiss = { showLinkDialog.value = false },
         onPlayLink = { url -> MediaUtils.playFile(url, context, "play_link") },
@@ -540,22 +479,11 @@ private fun FolderListContent(
   val gesturePreferences = koinInject<GesturePreferences>()
   val tapThumbnailToSelect by gesturePreferences.tapThumbnailToSelect.collectAsState()
 
-  // Show loading or empty state based on loading status
-  // Only show empty state after initial scan completes with no results
   val showEmpty = folders.isEmpty() && !isLoading && hasCompletedInitialLoad
   val showLoading = isLoading && folders.isEmpty()
 
-  // Check if at top of list to hide scrollbar during pull-to-refresh
-  val isAtTop by remember {
-    derivedStateOf {
-      listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0
-    }
-  }
-
-  // Only show scrollbar if list has more than 20 items
+  val isAtTop by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 } }
   val hasEnoughItems = folders.size > 20
-
-  // Animate scrollbar alpha
   val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
     targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
     animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
@@ -568,12 +496,9 @@ private fun FolderListContent(
     listState = listState,
     modifier = modifier.fillMaxSize(),
   ) {
-    // Show centered states when loading or empty
     if (showLoading || showEmpty) {
       Box(
-        modifier = Modifier
-          .fillMaxSize()
-          .padding(bottom = 80.dp), // Account for bottom navigation bar
+        modifier = Modifier.fillMaxSize().padding(bottom = 80.dp),
         contentAlignment = Alignment.Center,
       ) {
         if (showLoading) {
@@ -591,7 +516,6 @@ private fun FolderListContent(
         }
       }
     } else {
-      // Show folder list
       LazyColumnScrollbar(
         state = listState,
         settings = ScrollbarSettings(
@@ -611,7 +535,6 @@ private fun FolderListContent(
                 file.parent == folder.path
               } ?: false
 
-            // Get new video count for this folder
             val newCount = foldersWithNewCount.find { it.folder.bucketId == folder.bucketId }?.newVideoCount ?: 0
 
             FolderCard(
@@ -666,14 +589,12 @@ private fun FolderSortDialog(
     onSortOrderChange = { isAsc ->
       onSortOrderChange(if (isAsc) SortOrder.Ascending else SortOrder.Descending)
     },
-    types =
-      listOf(
+    types = listOf(
         FolderSortType.Title.displayName,
         FolderSortType.Date.displayName,
         FolderSortType.Size.displayName,
       ),
-    icons =
-      listOf(
+    icons = listOf(
         Icons.Filled.Title,
         Icons.Filled.CalendarToday,
         Icons.Filled.SwapVert,
@@ -687,8 +608,7 @@ private fun FolderSortDialog(
       }
     },
     showSortOptions = isAlbumView,
-    viewModeSelector =
-      ViewModeSelector(
+    viewModeSelector = ViewModeSelector(
         label = "视图模式",
         firstOptionLabel = "文件夹视图",
         secondOptionLabel = "树状视图",
@@ -701,33 +621,12 @@ private fun FolderSortDialog(
           )
         },
       ),
-    visibilityToggles =
-      listOf(
-        VisibilityToggle(
-          label = "完整名称",
-          checked = unlimitedNameLines,
-          onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) },
-        ),
-        VisibilityToggle(
-          label = "路径",
-          checked = showFolderPath,
-          onCheckedChange = { browserPreferences.showFolderPath.set(it) },
-        ),
-        VisibilityToggle(
-          label = "视频总数",
-          checked = showTotalVideosChip,
-          onCheckedChange = { browserPreferences.showTotalVideosChip.set(it) },
-        ),
-        VisibilityToggle(
-          label = "总时长",
-          checked = showTotalDurationChip,
-          onCheckedChange = { browserPreferences.showTotalDurationChip.set(it) },
-        ),
-        VisibilityToggle(
-          label = "文件夹大小",
-          checked = showTotalSizeChip,
-          onCheckedChange = { browserPreferences.showTotalSizeChip.set(it) },
-        ),
+    visibilityToggles = listOf(
+        VisibilityToggle(label = "完整名称", checked = unlimitedNameLines, onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) }),
+        VisibilityToggle(label = "路径", checked = showFolderPath, onCheckedChange = { browserPreferences.showFolderPath.set(it) }),
+        VisibilityToggle(label = "视频总数", checked = showTotalVideosChip, onCheckedChange = { browserPreferences.showTotalVideosChip.set(it) }),
+        VisibilityToggle(label = "总时长", checked = showTotalDurationChip, onCheckedChange = { browserPreferences.showTotalDurationChip.set(it) }),
+        VisibilityToggle(label = "文件夹大小", checked = showTotalSizeChip, onCheckedChange = { browserPreferences.showTotalSizeChip.set(it) }),
       ),
   )
 }
