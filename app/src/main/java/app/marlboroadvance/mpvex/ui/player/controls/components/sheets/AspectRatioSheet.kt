@@ -54,7 +54,7 @@ fun AspectRatioSheet(
 ) {
   val presetRatios =
     listOf(
-      AspectRatio("Default", -1.0),
+      AspectRatio("默认", -1.0),
       AspectRatio("4:3", 4.0 / 3.0),
       AspectRatio("16:9", 16.0 / 9.0),
       AspectRatio("16:10", 16.0 / 10.0),
@@ -73,7 +73,7 @@ fun AspectRatioSheet(
           .padding(vertical = MaterialTheme.spacing.medium),
     ) {
       Text(
-        text = "Aspect Ratio",
+        text = "画面比例",
         style = MaterialTheme.typography.headlineSmall,
         modifier =
           Modifier
@@ -83,7 +83,7 @@ fun AspectRatioSheet(
 
       // Preset ratios
       Text(
-        text = "Presets",
+        text = "预设",
         style = MaterialTheme.typography.titleSmall,
         modifier =
           Modifier
@@ -108,7 +108,7 @@ fun AspectRatioSheet(
       // Custom ratios
       if (customRatios.isNotEmpty()) {
         Text(
-          text = "Custom",
+          text = "自定义",
           style = MaterialTheme.typography.titleSmall,
           modifier =
             Modifier
@@ -146,7 +146,6 @@ fun AspectRatioSheet(
     }
   }
 }
-
 @Composable
 private fun AddCustomRatioRow(
   onAdd: (String, Double) -> Unit,
@@ -164,7 +163,7 @@ private fun AddCustomRatioRow(
         .padding(horizontal = MaterialTheme.spacing.medium),
   ) {
     Text(
-      text = "Add Custom Ratio (e.g. 16:9)",
+      text = "添加自定义比例（例如 16:9）",
       style = MaterialTheme.typography.titleSmall,
       modifier = Modifier.padding(bottom = MaterialTheme.spacing.small),
     )
@@ -181,7 +180,7 @@ private fun AddCustomRatioRow(
           widthText = it.filter { char -> char.isDigit() || char == '.' }
           errorMessage = null
         },
-        label = { Text("Width") },
+        label = { Text("宽度") },
         isError = errorMessage != null,
         keyboardOptions =
           KeyboardOptions(
@@ -207,7 +206,7 @@ private fun AddCustomRatioRow(
           heightText = it.filter { char -> char.isDigit() || char == '.' }
           errorMessage = null
         },
-        label = { Text("Height") },
+        label = { Text("高度") },
         isError = errorMessage != null,
         keyboardOptions =
           KeyboardOptions(
@@ -224,7 +223,7 @@ private fun AddCustomRatioRow(
                 heightText = ""
                 keyboardController?.hide()
               } else {
-                errorMessage = "Invalid"
+                errorMessage = "无效"
               }
             },
           ),
@@ -242,11 +241,11 @@ private fun AddCustomRatioRow(
             heightText = ""
             keyboardController?.hide()
           } else {
-            errorMessage = "Invalid"
+            errorMessage = "无效"
           }
         },
       ) {
-        Icon(Icons.Default.Add, contentDescription = "Add")
+        Icon(Icons.Default.Add, contentDescription = "添加")
       }
     }
 
