@@ -18,7 +18,6 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
@@ -31,28 +30,26 @@ import androidx.navigation3.ui.NavDisplay
 import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
-import app.marlboroadvance.mpvex.repository.NetworkRepository
 import app.marlboroadvance.mpvex.ui.browser.MainScreen
 import app.marlboroadvance.mpvex.ui.theme.DarkMode
 import app.marlboroadvance.mpvex.ui.theme.MpvexTheme
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
-import kotlinx.coroutines.launch
 import org.koin.android.ext.android.inject
 
 class MainActivity : ComponentActivity() {
   private val appearancePreferences by inject<AppearancePreferences>()
-  private val networkRepository by inject<NetworkRepository>()
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
 
-    // Register proxy lifecycle observer
-    lifecycle.addObserver(app.marlboroadvance.mpvex.ui.browser.networkstreaming.proxy.ProxyLifecycleObserver())
+    // 👇 移除了没用的网络代理监听
+    // lifecycle.addObserver(...ProxyLifecycleObserver())
 
     setContent {
       val dark by appearancePreferences.darkMode.collectAsState()
       val isSystemInDarkTheme = isSystemInDarkTheme()
       val isDarkMode = dark == DarkMode.Dark || (dark == DarkMode.System && isSystemInDarkTheme)
+      
       enableEdgeToEdge(
         SystemBarStyle.auto(
           lightScrim = Color.White.toArgb(),
@@ -60,35 +57,7 @@ class MainActivity : ComponentActivity() {
         ) { isDarkMode },
       )
 
-      LaunchedEffect(Unit) {
-        // Delay auto-connect to let UI settle first
-        kotlinx.coroutines.delay(500)
-        launch(kotlinx.coroutines.Dispatchers.IO) {
-          try {
-            val autoConnectConnections = networkRepository.getAutoConnectConnections()
-            autoConnectConnections.forEach { connection ->
-              kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                Log.d("MainActivity", "Auto-connecting to: ${connection.name}")
-              }
-              networkRepository.connect(connection)
-                .onSuccess {
-                  kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    Log.d("MainActivity", "Auto-connected successfully: ${connection.name}")
-                  }
-                }
-                .onFailure { e ->
-                  kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    Log.e("MainActivity", "Auto-connect failed for ${connection.name}: ${e.message}")
-                  }
-                }
-            }
-          } catch (e: Exception) {
-            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-              Log.e("MainActivity", "Error during auto-connect", e)
-            }
-          }
-        }
-      }
+      // 👇 移除了启动时偷偷连接 SMB 网络的后台逻辑
 
       MpvexTheme {
         Surface {
@@ -117,6 +86,7 @@ class MainActivity : ComponentActivity() {
         backStack = typedBackstack,
         onBack = { typedBackstack.removeLastOrNull() },
         entryProvider = { route -> NavEntry(route) { route.Content() } },
+        // 👇👇👇 原汁原味的丝滑动画，完美保留 👇👇👇
         popTransitionSpec = {
           (
             fadeIn(animationSpec = tween(220)) +
@@ -155,6 +125,7 @@ class MainActivity : ComponentActivity() {
                 )
             )
         },
+        // 👆👆👆 动画保留结束 👆👆👆
       )
     }
   }
