@@ -63,14 +63,16 @@ android {
     includeInBundle = false
   }
 
+  // 👇👇👇 核心修改：只打包 64 位架构 👇👇👇
   splits {
     abi {
       isEnable = true
       reset()
-      include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-      isUniversalApk = true
+      include("arm64-v8a") // 只保留 64 位 ARM
+      isUniversalApk = false // 不生成臃肿的通用包
     }
   }
+  // 👆👆👆 修改结束 👆👆👆
 
   buildTypes {
     named("release") {
@@ -131,10 +133,7 @@ android {
 
 androidComponents {
   val abiCodes = mapOf(
-    "armeabi-v7a" to 1,
-    "arm64-v8a" to 2,
-    "x86" to 3,
-    "x86_64" to 4
+    "arm64-v8a" to 2 // 只保留这一个
   )
 
   onVariants { variant ->
