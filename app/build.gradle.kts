@@ -1,4 +1,3 @@
-
 import com.android.build.api.variant.FilterConfiguration
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
@@ -34,12 +33,14 @@ android {
     includeInApk = false
     includeInBundle = false
   }
+
+  // 👇👇👇 优化：只打包 64 位架构，剔除冗余 👇👇👇
   splits {
     abi {
       isEnable = true
       reset()
-      include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
-      isUniversalApk = true
+      include("arm64-v8a") // 只保留 64 位
+      isUniversalApk = false // 关闭通用包
     }
   }
 
@@ -76,12 +77,10 @@ android {
     viewBinding = true
     buildConfig = true
   }
-// 👇👇👇 添加下面这段代码 👇👇👇
   lint {
     abortOnError = false        // Lint 发现错误时不中断构建
     checkReleaseBuilds = false  // 打包 Release/Preview 版本时不执行 Lint 检查
   }
-  // 👆👆👆 添加结束 👆👆👆
   composeCompiler {
     includeSourceInformation = true
   }
@@ -105,13 +104,12 @@ android {
     }
   }
 
+  // 👇👇👇 优化：版本号映射表只保留 64 位 👇👇👇
   val abiCodes =
     mapOf(
-      "armeabi-v7a" to 1,
       "arm64-v8a" to 2,
-      "x86" to 3,
-      "x86_64" to 4,
     )
+  
   androidComponents {
     onVariants { variant ->
       variant.outputs.forEach { output ->
