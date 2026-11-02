@@ -207,7 +207,7 @@ fun PermissionDeniedState(
       Spacer(modifier = Modifier.weight(1f))
     }
   }
-    // Explanation Dialog
+  // Explanation Dialog
   if (showExplanationDialog) {
     val uriHandler = LocalUriHandler.current
     val githubUrl = "https://github.com/marlboro-advance/mpvex"

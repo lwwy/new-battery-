@@ -168,7 +168,12 @@ object SubtitlesPreferencesScreen : Screen {
           )
 
           Box(
-            modifier = Modifier.fillMaxWidth().clickable { locationPicker.launch(null) }.padding(vertical = 16.dp, horizontal = 16.dp),
+            modifier =
+              Modifier
+                .fillMaxWidth()
+                .clickable {
+                  locationPicker.launch(null)
+                }.padding(vertical = 16.dp, horizontal = 16.dp),
           ) {
             Row(
               modifier = Modifier.fillMaxWidth(),
@@ -247,12 +252,16 @@ object SubtitlesPreferencesScreen : Screen {
               }
             }
           }
-                    if (availableFonts.isNotEmpty()) {
+          if (availableFonts.isNotEmpty()) {
             var showFontPicker by remember { mutableStateOf(false) }
             val isCustomFontSelected = selectedFont.isNotBlank() && selectedFont != "Default"
 
             Box(
-              modifier = Modifier.fillMaxWidth().clickable { showFontPicker = true }.padding(vertical = 16.dp, horizontal = 16.dp),
+              modifier =
+                Modifier.fillMaxWidth().clickable { showFontPicker = true }.padding(
+                  vertical = 16.dp,
+                  horizontal = 16.dp,
+                ),
             ) {
               Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -292,12 +301,13 @@ object SubtitlesPreferencesScreen : Screen {
                   androidx.compose.foundation.lazy.LazyColumn(modifier = Modifier.fillMaxWidth()) {
                     items(availableFonts.size) { index ->
                       val font = availableFonts[index]
-                      val typeface = if (font == "Default") {
-                        Typeface.DEFAULT
-                      } else {
-                        val entry = customFontEntries.firstOrNull { it.familyName == font }
-                        entry?.let { runCatching { Typeface.createFromFile(it.file) }.getOrNull() }
-                      }
+                      val typeface =
+                        if (font == "Default") {
+                          Typeface.DEFAULT
+                        } else {
+                          val entry = customFontEntries.firstOrNull { it.familyName == font }
+                          entry?.let { runCatching { Typeface.createFromFile(it.file) }.getOrNull() }
+                        }
 
                       androidx.compose.material3.TextButton(
                         onClick = {

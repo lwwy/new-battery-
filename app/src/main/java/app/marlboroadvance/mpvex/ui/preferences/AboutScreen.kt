@@ -25,10 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AccountBalance
-import androidx.compose.material.icons.filled.CurrencyRupee
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -142,8 +139,7 @@ object AboutScreen : Screen {
                         ),
                     )
                   }
-                }
-                .padding(20.dp),
+                }.padding(20.dp),
           ) {
             Column {
               Row(verticalAlignment = Alignment.CenterVertically) {
@@ -261,15 +257,16 @@ object AboutScreen : Screen {
                   )
                 }
                 Text(
-                  text = collectDeviceInfo()
-                    .replace("App version: ", "应用版本: ")
-                    .replace("Android version: ", "安卓版本: ")
-                    .replace("Device brand: ", "设备品牌: ")
-                    .replace("Device manufacturer: ", "设备制造商: ")
-                    .replace("Device model: ", "设备型号: ")
-                    .replace("MPV version: ", "MPV 版本: ")
-                    .replace("ffmpeg version: ", "ffmpeg 版本: ")
-                    .replace("libplacebo version: ", "libplacebo 版本: "),
+                  text =
+                    collectDeviceInfo()
+                      .replace("App version: ", "应用版本: ")
+                      .replace("Android version: ", "安卓版本: ")
+                      .replace("Device brand: ", "设备品牌: ")
+                      .replace("Device manufacturer: ", "设备制造商: ")
+                      .replace("Device model: ", "设备型号: ")
+                      .replace("MPV version: ", "MPV 版本: ")
+                      .replace("ffmpeg version: ", "ffmpeg 版本: ")
+                      .replace("libplacebo version: ", "libplacebo 版本: "),
                   style = MaterialTheme.typography.bodySmall,
                   color = cs.onPrimaryContainer.copy(alpha = 0.85f),
                 )
@@ -282,6 +279,7 @@ object AboutScreen : Screen {
     }
   }
 }
+
 @Suppress("DEPRECATION")
 @Serializable
 object LibrariesScreen : Screen {

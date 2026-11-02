@@ -15,32 +15,22 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Link
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.PlaylistAdd
-import androidx.compose.material.icons.outlined.CreateNewFolder
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.SearchBar
-import androidx.compose.material3.SearchBarDefaults
-import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SearchBar
+import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import app.marlboroadvance.mpvex.ui.browser.fab.PlaylistActionFab
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import app.marlboroadvance.mpvex.ui.browser.components.BrowserTopBar
-import app.marlboroadvance.mpvex.ui.browser.dialogs.DeleteConfirmationDialog
-import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -56,12 +46,16 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.marlboroadvance.mpvex.database.repository.PlaylistRepository
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.presentation.components.pullrefresh.PullRefreshBox
 import app.marlboroadvance.mpvex.ui.browser.cards.PlaylistCard
+import app.marlboroadvance.mpvex.ui.browser.components.BrowserTopBar
+import app.marlboroadvance.mpvex.ui.browser.dialogs.DeleteConfirmationDialog
+import app.marlboroadvance.mpvex.ui.browser.fab.PlaylistActionFab
+import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
+import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
@@ -80,9 +74,10 @@ object PlaylistScreen : Screen {
     val scope = rememberCoroutineScope()
 
     // ViewModel
-    val viewModel: PlaylistViewModel = viewModel(
-      factory = PlaylistViewModel.factory(context.applicationContext as android.app.Application),
-    )
+    val viewModel: PlaylistViewModel =
+      viewModel(
+        factory = PlaylistViewModel.factory(context.applicationContext as android.app.Application),
+      )
 
     val playlistsWithCount by viewModel.playlistsWithCount.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -95,13 +90,14 @@ object PlaylistScreen : Screen {
     val focusRequester = remember { FocusRequester() }
 
     // Filter playlists based on search query
-    val filteredPlaylists = if (isSearching && searchQuery.isNotBlank()) {
-      playlistsWithCount.filter { playlistWithCount ->
-        playlistWithCount.playlist.name.contains(searchQuery, ignoreCase = true)
+    val filteredPlaylists =
+      if (isSearching && searchQuery.isNotBlank()) {
+        playlistsWithCount.filter { playlistWithCount ->
+          playlistWithCount.playlist.name.contains(searchQuery, ignoreCase = true)
+        }
+      } else {
+        playlistsWithCount
       }
-    } else {
-      playlistsWithCount
-    }
 
     // Request focus when search is activated
     LaunchedEffect(isSearching) {
@@ -112,18 +108,19 @@ object PlaylistScreen : Screen {
     }
 
     // Selection manager - use filtered list
-    val selectionManager = rememberSelectionManager(
-      items = filteredPlaylists,
-      getId = { it.playlist.id },
-      onDeleteItems = { itemsToDelete ->
-        // Delete all items sequentially (this is a suspend function, so it blocks until complete)
-        itemsToDelete.forEach { item ->
-          viewModel.deletePlaylist(item.playlist)
-        }
-        Pair(itemsToDelete.size, 0)
-      },
-      onOperationComplete = { viewModel.refresh() },
-    )
+    val selectionManager =
+      rememberSelectionManager(
+        items = filteredPlaylists,
+        getId = { it.playlist.id },
+        onDeleteItems = { itemsToDelete ->
+          // Delete all items sequentially (this is a suspend function, so it blocks until complete)
+          itemsToDelete.forEach { item ->
+            viewModel.deletePlaylist(item.playlist)
+          }
+          Pair(itemsToDelete.size, 0)
+        },
+        onOperationComplete = { viewModel.refresh() },
+      )
 
     // UI State
     val listState = rememberLazyListState()
@@ -183,9 +180,10 @@ object PlaylistScreen : Screen {
             },
             expanded = false,
             onExpandedChange = { },
-            modifier = Modifier
-              .fillMaxWidth()
-              .padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier =
+              Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(28.dp),
             tonalElevation = 6.dp,
           ) {
@@ -201,9 +199,12 @@ object PlaylistScreen : Screen {
             onCancelSelection = { selectionManager.clear() },
             isSingleSelection = selectionManager.isSingleSelection,
             onSearchClick = { isSearching = true },
-            onRenameClick = if (selectionManager.isSingleSelection) {
-              { showRenameDialog = true }
-            } else null,
+            onRenameClick =
+              if (selectionManager.isSingleSelection) {
+                { showRenameDialog = true }
+              } else {
+                null
+              },
             onDeleteClick = { showDeleteDialog = true },
             onSelectAll = { selectionManager.selectAll() },
             onInvertSelection = { selectionManager.invertSelection() },
@@ -214,7 +215,7 @@ object PlaylistScreen : Screen {
       floatingActionButton = {
         if (!selectionManager.isInSelectionMode) {
           Box(
-            modifier = Modifier.padding(bottom = 75.dp)
+            modifier = Modifier.padding(bottom = 75.dp),
           ) {
             PlaylistActionFab(
               listState = listState,
@@ -230,10 +231,11 @@ object PlaylistScreen : Screen {
       if (isSearching && filteredPlaylists.isEmpty() && searchQuery.isNotBlank()) {
         // Show "no results" for search
         Box(
-          modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(bottom = 80.dp),
+          modifier =
+            Modifier
+              .fillMaxSize()
+              .padding(paddingValues)
+              .padding(bottom = 80.dp),
           contentAlignment = Alignment.Center,
         ) {
           EmptyState(
@@ -244,15 +246,17 @@ object PlaylistScreen : Screen {
         }
       } else if (playlistsWithCount.isEmpty() && hasCompletedInitialLoad) {
         Box(
-          modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)
-            .padding(bottom = 80.dp), // Account for bottom navigation bar
+          modifier =
+            Modifier
+              .fillMaxSize()
+              .padding(paddingValues)
+              .padding(bottom = 80.dp),
+          // Account for bottom navigation bar
           contentAlignment = Alignment.Center,
         ) {
           Column(
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp),
           ) {
             EmptyState(
               icon = Icons.Outlined.PlaylistAdd,
@@ -302,38 +306,44 @@ object PlaylistScreen : Screen {
         onConfirm = { url ->
           scope.launch {
             val result = viewModel.createM3UPlaylist(url)
-            result.onSuccess {
-              android.widget.Toast.makeText(
-                context,
-                "播放列表添加成功",
-                android.widget.Toast.LENGTH_SHORT
-              ).show()
-            }.onFailure { error ->
-              android.widget.Toast.makeText(
-                context,
-                "添加 m3u 播放列表失败：${error.message}",
-                android.widget.Toast.LENGTH_LONG
-              ).show()
-            }
+            result
+              .onSuccess {
+                android.widget.Toast
+                  .makeText(
+                    context,
+                    "播放列表添加成功",
+                    android.widget.Toast.LENGTH_SHORT,
+                  ).show()
+              }.onFailure { error ->
+                android.widget.Toast
+                  .makeText(
+                    context,
+                    "添加 m3u 播放列表失败：${error.message}",
+                    android.widget.Toast.LENGTH_LONG,
+                  ).show()
+              }
             showM3UDialog = false
           }
         },
         onPickLocalFile = { uri ->
           scope.launch {
             val result = viewModel.createM3UPlaylistFromFile(uri)
-            result.onSuccess {
-              android.widget.Toast.makeText(
-                context,
-                "m3u 播放列表添加成功",
-                android.widget.Toast.LENGTH_SHORT
-              ).show()
-            }.onFailure { error ->
-              android.widget.Toast.makeText(
-                context,
-                "添加 m3u 播放列表失败：${error.message}",
-                android.widget.Toast.LENGTH_LONG
-              ).show()
-            }
+            result
+              .onSuccess {
+                android.widget.Toast
+                  .makeText(
+                    context,
+                    "m3u 播放列表添加成功",
+                    android.widget.Toast.LENGTH_SHORT,
+                  ).show()
+              }.onFailure { error ->
+                android.widget.Toast
+                  .makeText(
+                    context,
+                    "添加 m3u 播放列表失败：${error.message}",
+                    android.widget.Toast.LENGTH_LONG,
+                  ).show()
+              }
             showM3UDialog = false
           }
         },
@@ -397,6 +407,7 @@ object PlaylistScreen : Screen {
     }
   }
 }
+
 @Composable
 private fun PlaylistListContent(
   playlistsWithCount: List<PlaylistWithCount>,
@@ -421,7 +432,9 @@ private fun PlaylistListContent(
   // Animate scrollbar alpha
   val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
     targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
-    animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
+    animationSpec =
+      androidx.compose.animation.core
+        .tween(durationMillis = 200),
     label = "scrollbarAlpha",
   )
 
@@ -433,10 +446,11 @@ private fun PlaylistListContent(
   ) {
     LazyColumnScrollbar(
       state = listState,
-      settings = ScrollbarSettings(
-        thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-        thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
-      ),
+      settings =
+        ScrollbarSettings(
+          thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
+          thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
+        ),
     ) {
       LazyColumn(
         state = listState,
@@ -506,35 +520,39 @@ private fun AddM3UPlaylistDialog(
 ) {
   var playlistUrl by remember { mutableStateOf("") }
   var isLoading by remember { mutableStateOf(false) }
-  
+
   // File picker launcher
-  val filePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
-    contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
-  ) { uri: android.net.Uri? ->
-    uri?.let {
-      isLoading = true
-      onPickLocalFile(it)
+  val filePickerLauncher =
+    androidx.activity.compose.rememberLauncherForActivityResult(
+      contract =
+        androidx.activity.result.contract.ActivityResultContracts
+          .GetContent(),
+    ) { uri: android.net.Uri? ->
+      uri?.let {
+        isLoading = true
+        onPickLocalFile(it)
+      }
     }
-  }
 
   androidx.compose.material3.AlertDialog(
-    onDismissRequest = if (isLoading) {
-      {}
-    } else {
-      onDismiss
-    },
+    onDismissRequest =
+      if (isLoading) {
+        {}
+      } else {
+        onDismiss
+      },
     title = { Text("添加 m3u 播放列表") },
     text = {
       Column(
         modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp),
       ) {
         Text(
           text = "输入 m3u 播放列表文件的 URL，或选择本地文件",
           style = MaterialTheme.typography.bodyMedium,
-          color = MaterialTheme.colorScheme.onSurfaceVariant
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        
+
         androidx.compose.material3.OutlinedTextField(
           value = playlistUrl,
           onValueChange = { playlistUrl = it },
@@ -542,45 +560,46 @@ private fun AddM3UPlaylistDialog(
           singleLine = false,
           maxLines = 3,
           modifier = Modifier.fillMaxWidth(),
-          enabled = !isLoading
+          enabled = !isLoading,
         )
-        
+
         // Divider with "OR" text
         androidx.compose.foundation.layout.Row(
           modifier = Modifier.fillMaxWidth(),
           verticalAlignment = Alignment.CenterVertically,
-          horizontalArrangement = Arrangement.spacedBy(8.dp)
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
           androidx.compose.material3.HorizontalDivider(modifier = Modifier.weight(1f))
           Text(
             text = "或",
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
           )
           androidx.compose.material3.HorizontalDivider(modifier = Modifier.weight(1f))
         }
-        
+
         // Local file picker button
         androidx.compose.material3.OutlinedButton(
           onClick = {
             filePickerLauncher.launch("*/*")
           },
           enabled = !isLoading,
-          modifier = Modifier.fillMaxWidth()
+          modifier = Modifier.fillMaxWidth(),
         ) {
           Icon(
             imageVector = Icons.Filled.FolderOpen,
             contentDescription = null,
-            modifier = Modifier.size(20.dp)
+            modifier = Modifier.size(20.dp),
           )
-          androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+          androidx.compose.foundation.layout
+            .Spacer(modifier = Modifier.width(8.dp))
           Text("选择本地 m3u 文件")
         }
-        
+
         if (isLoading) {
           Box(
             modifier = Modifier.fillMaxWidth(),
-            contentAlignment = Alignment.Center
+            contentAlignment = Alignment.Center,
           ) {
             CircularProgressIndicator(modifier = Modifier.size(32.dp))
           }
@@ -603,7 +622,7 @@ private fun AddM3UPlaylistDialog(
     dismissButton = {
       androidx.compose.material3.TextButton(
         onClick = onDismiss,
-        enabled = !isLoading
+        enabled = !isLoading,
       ) {
         Text("取消")
       }

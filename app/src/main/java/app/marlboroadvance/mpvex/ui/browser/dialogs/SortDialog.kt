@@ -177,8 +177,7 @@ private fun SortTypeSelector(
                     } else {
                       MaterialTheme.colorScheme.surfaceContainerHighest
                     },
-                )
-                .clickable(
+                ).clickable(
                   onClick = { onSortTypeChange(type) },
                   interactionSource = remember { MutableInteractionSource() },
                   indication = ripple(bounded = true),
@@ -214,6 +213,7 @@ private fun SortTypeSelector(
     }
   }
 }
+
 @Composable
 private fun SortOrderSelector(
   sortOrderAsc: Boolean,

@@ -13,7 +13,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import my.nanihadesuka.compose.LazyColumnScrollbar
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountTree
 import androidx.compose.material.icons.filled.CalendarToday
@@ -73,7 +72,6 @@ import app.marlboroadvance.mpvex.ui.browser.dialogs.DeleteConfirmationDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.SortDialog
 import app.marlboroadvance.mpvex.ui.browser.dialogs.ViewModeSelector
 import app.marlboroadvance.mpvex.ui.browser.dialogs.VisibilityToggle
-import app.marlboroadvance.mpvex.ui.browser.fab.MediaActionFab
 import app.marlboroadvance.mpvex.ui.browser.filesystem.FileSystemBrowserRootScreen
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
 import app.marlboroadvance.mpvex.ui.browser.sheets.PlayLinkSheet
@@ -90,6 +88,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import my.nanihadesuka.compose.LazyColumnScrollbar
 import my.nanihadesuka.compose.ScrollbarSettings
 import org.koin.compose.koinInject
 import java.io.File
@@ -148,14 +147,15 @@ object FolderListScreen : Screen {
       remember(videoFolders, folderSortType, folderSortOrder) {
         SortUtils.sortFolders(videoFolders, folderSortType, folderSortOrder)
       }
-    val filteredFolders = if (isSearching && searchQuery.isNotBlank()) {
-      sortedFolders.filter { folder ->
-        folder.name.contains(searchQuery, ignoreCase = true) ||
-          folder.path.contains(searchQuery, ignoreCase = true)
+    val filteredFolders =
+      if (isSearching && searchQuery.isNotBlank()) {
+        sortedFolders.filter { folder ->
+          folder.name.contains(searchQuery, ignoreCase = true) ||
+            folder.path.contains(searchQuery, ignoreCase = true)
+        }
+      } else {
+        sortedFolders
       }
-    } else {
-      sortedFolders
-    }
 
     val selectionManager =
       rememberSelectionManager(
@@ -233,13 +233,16 @@ object FolderListScreen : Screen {
       }
     }
 
-    val filteredVideos = if (isSearching && searchQuery.isNotBlank() && videosLoaded) {
-      allVideos.filter { video ->
-        video.title.contains(searchQuery, ignoreCase = true) ||
-          video.displayName.contains(searchQuery, ignoreCase = true) ||
-          video.path.contains(searchQuery, ignoreCase = true)
+    val filteredVideos =
+      if (isSearching && searchQuery.isNotBlank() && videosLoaded) {
+        allVideos.filter { video ->
+          video.title.contains(searchQuery, ignoreCase = true) ||
+            video.displayName.contains(searchQuery, ignoreCase = true) ||
+            video.path.contains(searchQuery, ignoreCase = true)
+        }
+      } else {
+        emptyList()
       }
-    } else emptyList()
 
     androidx.activity.compose.BackHandler(enabled = selectionManager.isInSelectionMode || isSearching) {
       when {
@@ -267,7 +270,10 @@ object FolderListScreen : Screen {
                   Icon(imageVector = Icons.Filled.Search, contentDescription = "搜索")
                 },
                 trailingIcon = {
-                  IconButton(onClick = { isSearching = false; searchQuery = "" }) {
+                  IconButton(onClick = {
+                    isSearching = false
+                    searchQuery = ""
+                  }) {
                     Icon(imageVector = Icons.Filled.Close, contentDescription = "取消")
                   }
                 },
@@ -334,11 +340,12 @@ object FolderListScreen : Screen {
                 foldersPreferences.blacklistedFolders.set(blacklistedFolders)
                 selectionManager.clear()
                 viewModel.refresh()
-                android.widget.Toast.makeText(
-                  context,
-                  context.getString(app.marlboroadvance.mpvex.R.string.pref_folders_blacklisted),
-                  android.widget.Toast.LENGTH_SHORT,
-                ).show()
+                android.widget.Toast
+                  .makeText(
+                    context,
+                    context.getString(app.marlboroadvance.mpvex.R.string.pref_folders_blacklisted),
+                    android.widget.Toast.LENGTH_SHORT,
+                  ).show()
               }
             },
             onSelectAll = { selectionManager.selectAll() },
@@ -368,19 +375,27 @@ object FolderListScreen : Screen {
                 }
               } else {
                 val searchListState = rememberLazyListState()
-                val isAtTop by remember { derivedStateOf { searchListState.firstVisibleItemIndex == 0 && searchListState.firstVisibleItemScrollOffset == 0 } }
+                val isAtTop by remember {
+                  derivedStateOf {
+                    searchListState.firstVisibleItemIndex == 0 &&
+                      searchListState.firstVisibleItemScrollOffset == 0
+                  }
+                }
                 val hasEnoughItems = filteredVideos.size > 20
                 val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
                   targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
-                  animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
+                  animationSpec =
+                    androidx.compose.animation.core
+                      .tween(durationMillis = 200),
                   label = "scrollbarAlpha",
                 )
                 LazyColumnScrollbar(
                   state = searchListState,
-                  settings = ScrollbarSettings(
-                    thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-                    thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
-                  ),
+                  settings =
+                    ScrollbarSettings(
+                      thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
+                      thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
+                    ),
                 ) {
                   LazyColumn(
                     state = searchListState,
@@ -434,7 +449,7 @@ object FolderListScreen : Screen {
           )
         }
       }
-            PlayLinkSheet(
+      PlayLinkSheet(
         isOpen = showLinkDialog.value,
         onDismiss = { showLinkDialog.value = false },
         onPlayLink = { url -> MediaUtils.playFile(url, context, "play_link") },
@@ -482,11 +497,18 @@ private fun FolderListContent(
   val showEmpty = folders.isEmpty() && !isLoading && hasCompletedInitialLoad
   val showLoading = isLoading && folders.isEmpty()
 
-  val isAtTop by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 && listState.firstVisibleItemScrollOffset == 0 } }
+  val isAtTop by remember {
+    derivedStateOf {
+      listState.firstVisibleItemIndex == 0 &&
+        listState.firstVisibleItemScrollOffset == 0
+    }
+  }
   val hasEnoughItems = folders.size > 20
   val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
     targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
-    animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
+    animationSpec =
+      androidx.compose.animation.core
+        .tween(durationMillis = 200),
     label = "scrollbarAlpha",
   )
 
@@ -518,10 +540,11 @@ private fun FolderListContent(
     } else {
       LazyColumnScrollbar(
         state = listState,
-        settings = ScrollbarSettings(
-          thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-          thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
-        ),
+        settings =
+          ScrollbarSettings(
+            thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
+            thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
+          ),
       ) {
         LazyColumn(
           state = listState,
@@ -543,11 +566,12 @@ private fun FolderListContent(
               isRecentlyPlayed = isRecentlyPlayed,
               onClick = { onFolderClick(folder) },
               onLongClick = { onFolderLongClick(folder) },
-              onThumbClick = if (tapThumbnailToSelect) {
-                { onFolderLongClick(folder) }
-              } else {
-                { onFolderClick(folder) }
-              },
+              onThumbClick =
+                if (tapThumbnailToSelect) {
+                  { onFolderLongClick(folder) }
+                } else {
+                  { onFolderClick(folder) }
+                },
               newVideoCount = newCount,
             )
           }
@@ -589,12 +613,14 @@ private fun FolderSortDialog(
     onSortOrderChange = { isAsc ->
       onSortOrderChange(if (isAsc) SortOrder.Ascending else SortOrder.Descending)
     },
-    types = listOf(
+    types =
+      listOf(
         FolderSortType.Title.displayName,
         FolderSortType.Date.displayName,
         FolderSortType.Size.displayName,
       ),
-    icons = listOf(
+    icons =
+      listOf(
         Icons.Filled.Title,
         Icons.Filled.CalendarToday,
         Icons.Filled.SwapVert,
@@ -608,7 +634,8 @@ private fun FolderSortDialog(
       }
     },
     showSortOptions = isAlbumView,
-    viewModeSelector = ViewModeSelector(
+    viewModeSelector =
+      ViewModeSelector(
         label = "视图模式",
         firstOptionLabel = "文件夹视图",
         secondOptionLabel = "树状视图",
@@ -621,12 +648,23 @@ private fun FolderSortDialog(
           )
         },
       ),
-    visibilityToggles = listOf(
-        VisibilityToggle(label = "完整名称", checked = unlimitedNameLines, onCheckedChange = { appearancePreferences.unlimitedNameLines.set(it) }),
-        VisibilityToggle(label = "路径", checked = showFolderPath, onCheckedChange = { browserPreferences.showFolderPath.set(it) }),
-        VisibilityToggle(label = "视频总数", checked = showTotalVideosChip, onCheckedChange = { browserPreferences.showTotalVideosChip.set(it) }),
-        VisibilityToggle(label = "总时长", checked = showTotalDurationChip, onCheckedChange = { browserPreferences.showTotalDurationChip.set(it) }),
-        VisibilityToggle(label = "文件夹大小", checked = showTotalSizeChip, onCheckedChange = { browserPreferences.showTotalSizeChip.set(it) }),
+    visibilityToggles =
+      listOf(
+        VisibilityToggle(label = "完整名称", checked = unlimitedNameLines, onCheckedChange = {
+          appearancePreferences.unlimitedNameLines.set(it)
+        }),
+        VisibilityToggle(label = "路径", checked = showFolderPath, onCheckedChange = {
+          browserPreferences.showFolderPath.set(it)
+        }),
+        VisibilityToggle(label = "视频总数", checked = showTotalVideosChip, onCheckedChange = {
+          browserPreferences.showTotalVideosChip.set(it)
+        }),
+        VisibilityToggle(label = "总时长", checked = showTotalDurationChip, onCheckedChange = {
+          browserPreferences.showTotalDurationChip.set(it)
+        }),
+        VisibilityToggle(label = "文件夹大小", checked = showTotalSizeChip, onCheckedChange = {
+          browserPreferences.showTotalSizeChip.set(it)
+        }),
       ),
   )
 }

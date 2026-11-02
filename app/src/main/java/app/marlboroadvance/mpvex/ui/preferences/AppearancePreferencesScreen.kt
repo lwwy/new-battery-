@@ -23,7 +23,6 @@ import app.marlboroadvance.mpvex.R
 import app.marlboroadvance.mpvex.preferences.AppearancePreferences
 import app.marlboroadvance.mpvex.preferences.BrowserPreferences
 import app.marlboroadvance.mpvex.preferences.MultiChoiceSegmentedButton
-import app.marlboroadvance.mpvex.preferences.SeekbarStyle
 import app.marlboroadvance.mpvex.preferences.preference.collectAsState
 import app.marlboroadvance.mpvex.presentation.Screen
 import app.marlboroadvance.mpvex.ui.theme.DarkMode
@@ -176,10 +175,11 @@ object AppearancePreferencesScreen : Screen {
             valueRange = 1f..30f,
             summary = {
               Text(
-                text = stringResource(
-                  id = R.string.pref_appearance_unplayed_old_video_days_summary,
-                  unplayedOldVideoDays,
-                ),
+                text =
+                  stringResource(
+                    id = R.string.pref_appearance_unplayed_old_video_days_summary,
+                    unplayedOldVideoDays,
+                  ),
               )
             },
             onSliderValueChange = { preferences.unplayedOldVideoDays.set(it.roundToInt()) },
@@ -197,7 +197,6 @@ object AppearancePreferencesScreen : Screen {
               Text(text = "打开视频列表时自动滚动到上次播放的视频")
             },
           )
-
         }
       }
     }

@@ -45,8 +45,8 @@ import app.marlboroadvance.mpvex.preferences.SubtitlesPreferences
 import app.marlboroadvance.mpvex.ui.player.controls.PlayerControls
 import app.marlboroadvance.mpvex.ui.theme.MpvexTheme
 import app.marlboroadvance.mpvex.utils.history.RecentlyPlayedOps
-import app.marlboroadvance.mpvex.utils.media.SubtitleOps
 import app.marlboroadvance.mpvex.utils.media.HttpUtils
+import app.marlboroadvance.mpvex.utils.media.SubtitleOps
 import com.github.k1rakishou.fsaf.FileManager
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.MPVNode
@@ -326,15 +326,16 @@ class PlayerActivity :
 
     playlistId = intent.getIntExtra("playlist_id", -1).takeIf { it != -1 }
     playlistIndex = intent.getIntExtra("playlist_index", 0)
-    
+
     // Load playlist from intent extras first (fast path - backward compatibility)
-    playlist = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-      intent.getParcelableArrayListExtra("playlist", Uri::class.java) ?: emptyList()
-    } else {
-      @Suppress("DEPRECATION")
-      intent.getParcelableArrayListExtra("playlist") ?: emptyList()
-    }
-    
+    playlist =
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+        intent.getParcelableArrayListExtra("playlist", Uri::class.java) ?: emptyList()
+      } else {
+        @Suppress("DEPRECATION")
+        intent.getParcelableArrayListExtra("playlist") ?: emptyList()
+      }
+
     // If playlist is empty but playlist_id is provided, load asynchronously from database
     // Use windowed loading to prevent ANR with large playlists
     if (playlist.isEmpty() && playlistId != null) {
@@ -342,24 +343,28 @@ class PlayerActivity :
         try {
           // Get total count first to decide if we need windowed loading
           val totalCount = playlistRepository.getPlaylistItemCount(playlistId!!)
-          
+
           if (totalCount > 100) {
             // Large playlist: use windowed loading to prevent ANR
             val windowSize = 100
             val halfWindow = windowSize / 2
             val startOffset = (playlistIndex - halfWindow).coerceAtLeast(0)
-            
-            val items = playlistRepository.getPlaylistItemsWindowAsUris(
-              playlistId = playlistId!!,
-              centerIndex = playlistIndex,
-              windowSize = windowSize
-            )
-            
+
+            val items =
+              playlistRepository.getPlaylistItemsWindowAsUris(
+                playlistId = playlistId!!,
+                centerIndex = playlistIndex,
+                windowSize = windowSize,
+              )
+
             withContext(Dispatchers.Main) {
               playlist = items
               playlistWindowOffset = startOffset
               playlistTotalCount = totalCount
-              Log.d(TAG, "Loaded ${items.size} items (windowed, offset=$startOffset) from playlist $playlistId (total: $totalCount)")
+              Log.d(
+                TAG,
+                "Loaded ${items.size} items (windowed, offset=$startOffset) from playlist $playlistId (total: $totalCount)",
+              )
             }
           } else {
             // Small playlist: load everything at once
@@ -376,7 +381,7 @@ class PlayerActivity :
         }
       }
     }
-    
+
     // Only auto-generate playlist from folder if playlist mode is enabled and no playlist_id
     if (playlist.isEmpty() && playlistId == null && playerPreferences.playlistMode.get()) {
       val path = parsePathFromIntent(intent)
@@ -436,16 +441,17 @@ class PlayerActivity :
   }
 
   @RequiresApi(Build.VERSION_CODES.P)
-private fun handleBackPress() {
-  // 如果处于锁定状态，直接 return，当做什么都没发生
-  if (viewModel.areControlsLocked.value) {
-    return 
+  private fun handleBackPress() {
+    // 如果处于锁定状态，直接 return，当做什么都没发生
+    if (viewModel.areControlsLocked.value) {
+      return
+    }
+
+    // 如果没锁，按一次直接退出
+    isUserFinishing = true
+    finish()
   }
 
-  // 如果没锁，按一次直接退出
-  isUserFinishing = true
-  finish()
-}
   @RequiresApi(Build.VERSION_CODES.P)
   private fun setupPlayerControls() {
     binding.controls.setContent {
@@ -633,84 +639,83 @@ private fun handleBackPress() {
   }
 
   override fun onStop() {
-  runCatching {
-    pipHelper.onStop()
-    saveVideoPlaybackState(fileName)
+    runCatching {
+      pipHelper.onStop()
+      saveVideoPlaybackState(fileName)
 
-    if (noisyReceiverRegistered) {
-      unregisterReceiver(noisyReceiver)
-      noisyReceiverRegistered = false
-    }
+      if (noisyReceiverRegistered) {
+        unregisterReceiver(noisyReceiver)
+        noisyReceiverRegistered = false
+      }
 
-    // 判断是否为息屏状态
-    val powerManager = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
-    val isScreenOff = !powerManager.isInteractive
+      // 判断是否为息屏状态
+      val powerManager = getSystemService(android.content.Context.POWER_SERVICE) as android.os.PowerManager
+      val isScreenOff = !powerManager.isInteractive
 
-    if (isScreenOff && !isUserFinishing) {
-      // 【息屏】: 强制暂停播放，并记录状态
-      isPausedByScreenOff = true
-      viewModel.pause() 
-    } else {
-      // 【切后台】: 走你原有的逻辑
-      isPausedByScreenOff = false
-      if (!serviceBound && audioPreferences.automaticBackgroundPlayback.get() && !isUserFinishing) {
-        startBackgroundPlayback()
+      if (isScreenOff && !isUserFinishing) {
+        // 【息屏】: 强制暂停播放，并记录状态
+        isPausedByScreenOff = true
+        viewModel.pause()
       } else {
-        if (!audioPreferences.automaticBackgroundPlayback.get() || isUserFinishing) {
-          viewModel.pause()
-        }
-        if (serviceBound) {
-          runCatching {
-            unbindService(serviceConnection)
-            serviceBound = false
+        // 【切后台】: 走你原有的逻辑
+        isPausedByScreenOff = false
+        if (!serviceBound && audioPreferences.automaticBackgroundPlayback.get() && !isUserFinishing) {
+          startBackgroundPlayback()
+        } else {
+          if (!audioPreferences.automaticBackgroundPlayback.get() || isUserFinishing) {
+            viewModel.pause()
+          }
+          if (serviceBound) {
+            runCatching {
+              unbindService(serviceConnection)
+              serviceBound = false
+            }
           }
         }
       }
+    }.onFailure { e ->
+      Log.e(TAG, "Error during onStop", e)
     }
-  }.onFailure { e ->
-    Log.e(TAG, "Error during onStop", e)
+
+    super.onStop()
   }
 
-  super.onStop()
-}
+  @RequiresApi(Build.VERSION_CODES.P)
+  override fun onStart() {
+    super.onStart()
 
-@RequiresApi(Build.VERSION_CODES.P)
-override fun onStart() {
-  super.onStart()
+    runCatching {
+      setupWindowFlags()
+      setupSystemUI()
 
-  runCatching {
-    setupWindowFlags()
-    setupSystemUI()
-
-    if (!noisyReceiverRegistered) {
-      val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
-      registerReceiver(noisyReceiver, filter)
-      noisyReceiverRegistered = true
-    }
-
-    if (playerPreferences.rememberBrightness.get()) {
-      val brightness = playerPreferences.defaultBrightness.get()
-      if (brightness != BRIGHTNESS_NOT_SET) {
-        viewModel.changeBrightnessTo(brightness)
+      if (!noisyReceiverRegistered) {
+        val filter = IntentFilter(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+        registerReceiver(noisyReceiver, filter)
+        noisyReceiverRegistered = true
       }
+
+      if (playerPreferences.rememberBrightness.get()) {
+        val brightness = playerPreferences.defaultBrightness.get()
+        if (brightness != BRIGHTNESS_NOT_SET) {
+          viewModel.changeBrightnessTo(brightness)
+        }
+      }
+
+      if (serviceBound) {
+        endBackgroundPlayback()
+      }
+
+      // 【新增逻辑】：如果上次是因为息屏暂停的，现在亮屏了，延迟1秒等画布准备好再播放
+      if (isPausedByScreenOff) {
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+          MPVLib.setPropertyBoolean("pause", false)
+        }, 500)
+        isPausedByScreenOff = false // 恢复状态
+      }
+    }.onFailure { e ->
+      Log.e(TAG, "Error during onStart", e)
     }
-
-    if (serviceBound) {
-      endBackgroundPlayback()
-    }
-
-    // 【新增逻辑】：如果上次是因为息屏暂停的，现在亮屏了，延迟1秒等画布准备好再播放
-if (isPausedByScreenOff) {
-  android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-    MPVLib.setPropertyBoolean("pause", false)
-  }, 500) 
-  isPausedByScreenOff = false // 恢复状态
-}
-
-  }.onFailure { e ->
-    Log.e(TAG, "Error during onStart", e)
   }
-}
 
   private fun setupWindowFlags() {
     pipHelper.updatePictureInPictureParams()
@@ -786,7 +791,7 @@ if (isPausedByScreenOff) {
 
     // Add observer after initialization
     MPVLib.addObserver(playerObserver)
-    
+
     // Copy fonts asynchronously (not critical for initial playback)
     lifecycleScope.launch(Dispatchers.IO) {
       runCatching {
@@ -829,9 +834,7 @@ if (isPausedByScreenOff) {
   /**
    * Returns default MPV configuration.
    */
-  private fun getDefaultMpvConfig(): String {
-    return ""
-  }
+  private fun getDefaultMpvConfig(): String = ""
 
   private fun copyMPVScripts() {
     runCatching {
@@ -848,38 +851,38 @@ if (isPausedByScreenOff) {
       // Clean existing scripts first
       fileManager.deleteContent(scriptsDir)
       Log.d(TAG, "Cleaned scripts directory")
-      
+
       // Copy user-selected Lua scripts if enabled
       if (advancedPreferences.enableLuaScripts.get()) {
         val selectedScripts = advancedPreferences.selectedLuaScripts.get()
         val mpvConfStorageUri = advancedPreferences.mpvConfStorageUri.get()
-        
+
         Log.d(TAG, "Lua scripts enabled: ${selectedScripts.size} script(s) selected: ${selectedScripts.joinToString()}")
-        
+
         if (selectedScripts.isEmpty()) {
           Log.d(TAG, "No Lua scripts selected, skipping copy")
           return@runCatching
         }
-        
+
         if (mpvConfStorageUri.isBlank()) {
           Log.w(TAG, "MPV config storage URI not set, cannot copy Lua scripts")
           return@runCatching
         }
-        
+
         val tree = DocumentFile.fromTreeUri(this, mpvConfStorageUri.toUri())
         if (tree == null) {
           Log.e(TAG, "Failed to access MPV config storage directory")
           return@runCatching
         }
-        
+
         if (!tree.exists() || !tree.canRead()) {
           Log.e(TAG, "MPV config storage directory does not exist or cannot be read")
           return@runCatching
         }
-        
+
         var successCount = 0
         var failCount = 0
-        
+
         selectedScripts.forEach { scriptName ->
           runCatching {
             val scriptFile = tree.findFile(scriptName)
@@ -904,7 +907,7 @@ if (isPausedByScreenOff) {
             failCount++
           }
         }
-        
+
         Log.d(TAG, "Lua scripts copy completed: $successCount succeeded, $failCount failed")
       } else {
         Log.d(TAG, "Lua scripts disabled in preferences")
@@ -1023,7 +1026,7 @@ if (isPausedByScreenOff) {
   private fun setHttpHeadersFromExtras(extras: Bundle?) {
     // Build header map starting with auto-detected referer
     val headerMap = mutableMapOf<String, String>()
-    
+
     // Automatically extract and set referer domain from the URL
     val uri = extractUriFromIntent(intent)
     if (uri != null && HttpUtils.isNetworkStream(uri)) {
@@ -1055,10 +1058,11 @@ if (isPausedByScreenOff) {
 
     // Set all headers in MPV
     if (headerMap.isNotEmpty()) {
-      val headersString = headerMap
-        .map { "${it.key}: ${it.value.replace(",", "\\,")}" }
-        .joinToString(",")
-      
+      val headersString =
+        headerMap
+          .map { "${it.key}: ${it.value.replace(",", "\\,")}" }
+          .joinToString(",")
+
       MPVLib.setPropertyString("http-header-fields", headersString)
       Log.d(TAG, "Set HTTP headers: $headersString")
     }
@@ -1074,7 +1078,7 @@ if (isPausedByScreenOff) {
     if (!HttpUtils.isNetworkStream(uri)) return
 
     val headerMap = mutableMapOf<String, String>()
-    
+
     // Automatically extract and set referer domain from the URI
     HttpUtils.extractRefererDomain(uri)?.let { referer ->
       headerMap["Referer"] = referer
@@ -1083,10 +1087,11 @@ if (isPausedByScreenOff) {
 
     // Set all headers in MPV
     if (headerMap.isNotEmpty()) {
-      val headersString = headerMap
-        .map { "${it.key}: ${it.value.replace(",", "\\,")}" }
-        .joinToString(",")
-      
+      val headersString =
+        headerMap
+          .map { "${it.key}: ${it.value.replace(",", "\\,")}" }
+          .joinToString(",")
+
       MPVLib.setPropertyString("http-header-fields", headersString)
       Log.d(TAG, "Set HTTP headers for playlist item: $headersString")
     }
@@ -1120,12 +1125,13 @@ if (isPausedByScreenOff) {
    */
   private fun parsePathFromSendIntent(intent: Intent): String? =
     if (intent.hasExtra(Intent.EXTRA_STREAM)) {
-      val uri = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-        intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
-      } else {
-        @Suppress("DEPRECATION")
-        intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
-      }
+      val uri =
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+          intent.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java)
+        } else {
+          @Suppress("DEPRECATION")
+          intent.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        }
       uri?.resolveUri(this@PlayerActivity)
     } else {
       intent.getStringExtra(Intent.EXTRA_TEXT)?.let { text ->
@@ -1175,7 +1181,8 @@ if (isPausedByScreenOff) {
       if (lastSegment.isNotBlank()) {
         // Decode URL encoding (e.g., %20 -> space)
         return try {
-          java.net.URLDecoder.decode(lastSegment, "UTF-8")
+          java.net.URLDecoder
+            .decode(lastSegment, "UTF-8")
             .substringBefore("?") // Remove query parameters
             .substringBefore("#") // Remove fragments
             .takeIf { it.isNotBlank() } ?: uri.host ?: "Network Stream"
@@ -1352,11 +1359,12 @@ if (isPausedByScreenOff) {
 
       // Handle playlist playback
       if (playlist.isNotEmpty()) {
-        val hasNextItem = if (viewModel.shuffleEnabled.value) {
-          shuffledPosition < shuffledIndices.size - 1
-        } else {
-          playlistIndex < playlist.size - 1
-        }
+        val hasNextItem =
+          if (viewModel.shuffleEnabled.value) {
+            shuffledPosition < shuffledIndices.size - 1
+          } else {
+            playlistIndex < playlist.size - 1
+          }
 
         if (hasNextItem) {
           // Play next item in playlist
@@ -1448,7 +1456,7 @@ if (isPausedByScreenOff) {
       "video-params/aspect" -> {
         // Safety check: don't access MPV during cleanup
         if (!mpvInitialized || player.isExiting || isFinishing) return
-        
+
         pipHelper.updatePictureInPictureParams()
         // Update orientation when video aspect ratio changes (fixes Video orientation mode)
         if (playerPreferences.orientation.get() == PlayerOrientation.Video) {
@@ -1546,7 +1554,7 @@ if (isPausedByScreenOff) {
         // For network files played via proxy (SMB/WebDAV/FTP), use the original network file path
         val networkFilePath = intent.getStringExtra("network_file_path")
         val networkConnectionId = intent.getLongExtra("network_connection_id", -1L)
-        
+
         if (networkFilePath != null && networkConnectionId != -1L) {
           // Pass network file path and connection ID for subtitle discovery
           SubtitleOps.autoloadSubtitles(
@@ -1589,10 +1597,12 @@ if (isPausedByScreenOff) {
           return@launch
         }
 
-         // Skip fetching for playlist items - they already have correct titles from playlist metadata
+        // Skip fetching for playlist items - they already have correct titles from playlist metadata
         val launchSource = intent.getStringExtra("launch_source")
-        if (intent.hasExtra("title") && launchSource != null && 
-            (launchSource.contains("playlist") || launchSource == "m3u_playlist")) {
+        if (intent.hasExtra("title") &&
+          launchSource != null &&
+          (launchSource.contains("playlist") || launchSource == "m3u_playlist")
+        ) {
           Log.d(TAG, "Skipping title fetch for playlist item with custom title: $fileName")
           return@launch
         }
@@ -1609,12 +1619,12 @@ if (isPausedByScreenOff) {
         Log.d(TAG, "Fetching title from network stream: $url")
 
         val betterFilename = HttpUtils.extractFilenameFromUrl(url)
-        if (betterFilename != null && betterFilename.isNotBlank() &&
+        if (betterFilename != null &&
+          betterFilename.isNotBlank() &&
           betterFilename != fileName &&
           betterFilename != uri.host &&
           betterFilename != "Network Stream"
         ) {
-
           Log.d(TAG, "Found better filename from HTTP headers: $betterFilename")
 
           // Update fileName
@@ -1644,46 +1654,54 @@ if (isPausedByScreenOff) {
           }
 
           // Update recently played with the parsed video title, duration, and file size
-          val filePath = when (uri.scheme) {
-            "file" -> uri.path ?: uri.toString()
-            "content" -> {
-              contentResolver.query(
-                uri,
-                arrayOf(MediaStore.MediaColumns.DATA),
-                null,
-                null,
-                null,
-              )?.use { cursor ->
-                if (cursor.moveToFirst()) {
-                  val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
-                  if (columnIndex != -1) cursor.getString(columnIndex) else null
-                } else null
-              } ?: uri.toString()
+          val filePath =
+            when (uri.scheme) {
+              "file" -> uri.path ?: uri.toString()
+              "content" -> {
+                contentResolver
+                  .query(
+                    uri,
+                    arrayOf(MediaStore.MediaColumns.DATA),
+                    null,
+                    null,
+                    null,
+                  )?.use { cursor ->
+                    if (cursor.moveToFirst()) {
+                      val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
+                      if (columnIndex != -1) cursor.getString(columnIndex) else null
+                    } else {
+                      null
+                    }
+                  } ?: uri.toString()
+              }
+
+              else -> uri.toString()
             }
 
-            else -> uri.toString()
-          }
-
           // Get duration and file size from MPV
-          val updatedDuration = runCatching {
-            (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
-          }.getOrDefault(0L)
+          val updatedDuration =
+            runCatching {
+              (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
+            }.getOrDefault(0L)
 
-          val updatedFileSize = runCatching {
-            // Try multiple properties to get file size
-            MPVLib.getPropertyDouble("file-size")?.toLong()
-              ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
-              ?: 0L
-          }.getOrDefault(0L)
+          val updatedFileSize =
+            runCatching {
+              // Try multiple properties to get file size
+              MPVLib.getPropertyDouble("file-size")?.toLong()
+                ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
+                ?: 0L
+            }.getOrDefault(0L)
 
           // Get video resolution from MPV
-          val updatedWidth = runCatching {
-            MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
-          }.getOrDefault(0)
+          val updatedWidth =
+            runCatching {
+              MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
+            }.getOrDefault(0)
 
-          val updatedHeight = runCatching {
-            MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
-          }.getOrDefault(0)
+          val updatedHeight =
+            runCatching {
+              MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
+            }.getOrDefault(0)
 
           // Update metadata without thumbnail
           runCatching {
@@ -1697,7 +1715,7 @@ if (isPausedByScreenOff) {
             )
             Log.d(
               TAG,
-              "Updated recently played metadata: $fileName (duration: ${updatedDuration}ms, size: ${updatedFileSize}B, resolution: ${updatedWidth}x${updatedHeight}) for $filePath",
+              "Updated recently played metadata: $fileName (duration: ${updatedDuration}ms, size: ${updatedFileSize}B, resolution: ${updatedWidth}x$updatedHeight) for $filePath",
             )
           }.onFailure { e ->
             Log.e(TAG, "Error updating video metadata in recently played", e)
@@ -1811,7 +1829,7 @@ if (isPausedByScreenOff) {
     if (state.externalSubtitles.isNotBlank()) {
       val externalSubUris = state.externalSubtitles.split("|").filter { it.isNotBlank() }
       Log.d(TAG, "Restoring ${externalSubUris.size} external subtitle(s)")
-      
+
       for (subUri in externalSubUris) {
         runCatching {
           MPVLib.command("sub-add", subUri, "cached")
@@ -1820,7 +1838,7 @@ if (isPausedByScreenOff) {
           Log.e(TAG, "Failed to restore external subtitle: $subUri", e)
         }
       }
-      
+
       // Update ViewModel's tracked list
       viewModel.setExternalSubtitles(externalSubUris)
     }
@@ -1935,30 +1953,35 @@ if (isPausedByScreenOff) {
         }
 
       // Get parsed video title from MPV
-      val videoTitle = runCatching {
-        MPVLib.getPropertyString("media-title")
-      }.getOrNull()?.takeIf { it.isNotBlank() && it != fileName }
+      val videoTitle =
+        runCatching {
+          MPVLib.getPropertyString("media-title")
+        }.getOrNull()?.takeIf { it.isNotBlank() && it != fileName }
 
       // Get duration and file size from MPV
-      val duration = runCatching {
-        (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
-      }.getOrDefault(0L)
+      val duration =
+        runCatching {
+          (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
+        }.getOrDefault(0L)
 
-      val fileSize = runCatching {
-        // Try multiple properties to get file size
-        MPVLib.getPropertyDouble("file-size")?.toLong()
-          ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
-          ?: 0L
-      }.getOrDefault(0L)
+      val fileSize =
+        runCatching {
+          // Try multiple properties to get file size
+          MPVLib.getPropertyDouble("file-size")?.toLong()
+            ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
+            ?: 0L
+        }.getOrDefault(0L)
 
       // Get video resolution from MPV
-      val width = runCatching {
-        MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
-      }.getOrDefault(0)
+      val width =
+        runCatching {
+          MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
+        }.getOrDefault(0)
 
-      val height = runCatching {
-        MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
-      }.getOrDefault(0)
+      val height =
+        runCatching {
+          MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
+        }.getOrDefault(0)
 
       RecentlyPlayedOps.addRecentlyPlayed(
         filePath = filePath,
@@ -1976,7 +1999,7 @@ if (isPausedByScreenOff) {
       Log.d(TAG, "  - videoTitle: $videoTitle")
       Log.d(TAG, "  - duration: ${duration}ms")
       Log.d(TAG, "  - size: ${fileSize}B")
-      Log.d(TAG, "  - resolution: ${width}x${height}")
+      Log.d(TAG, "  - resolution: ${width}x$height")
       Log.d(TAG, "  - source: $launchSource")
     }.onFailure { e ->
       Log.e(TAG, "Error saving recently played", e)
@@ -2008,20 +2031,20 @@ if (isPausedByScreenOff) {
    */
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
-    
+
     // Update the intent first so getFileName uses the new intent data
     setIntent(intent)
-    
+
     // Extract the new fileName before loading the file
     fileName = getFileName(intent)
     if (fileName.isBlank()) {
       fileName = intent.data?.lastPathSegment ?: "Unknown Video"
     }
     mediaIdentifier = getMediaIdentifier(intent, fileName)
-    
+
     // Set HTTP headers (including referer) BEFORE loading the new file
     setHttpHeadersFromExtras(intent.extras)
-    
+
     // Load the new file
     getPlayableUri(intent)?.let { uri ->
       // Avoid blocking UI thread while mpv opens network streams (e.g., HLS).
@@ -2130,15 +2153,15 @@ if (isPausedByScreenOff) {
     if (!mpvInitialized || player.isExiting) {
       return ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
     }
-    
+
     val aspect = runCatching { player.getVideoOutAspect() }.getOrNull()
-    
+
     // If video aspect is not yet available, default to sensor landscape
     // This will be updated when video-params/aspect becomes available
     if (aspect == null || aspect <= 0.0) {
       return ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT
     }
-    
+
     return if (aspect > 1.0) {
       ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
     } else {
@@ -2207,8 +2230,6 @@ if (isPausedByScreenOff) {
         return true
       }
 
-  
-
       KeyEvent.KEYCODE_MEDIA_STOP -> {
         finishAndRemoveTask()
         return true
@@ -2239,19 +2260,19 @@ if (isPausedByScreenOff) {
    * @return true if event was handled, false otherwise
    */
   override fun onKeyUp(
-  keyCode: Int,
-  event: KeyEvent?,
-): Boolean {
-  // 👇 新增：如果按的是音量键，直接交给系统处理，不交给 mpv
-  if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
-    return super.onKeyUp(keyCode, event)
-  }
+    keyCode: Int,
+    event: KeyEvent?,
+  ): Boolean {
+    // 👇 新增：如果按的是音量键，直接交给系统处理，不交给 mpv
+    if (keyCode == KeyEvent.KEYCODE_VOLUME_UP || keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) {
+      return super.onKeyUp(keyCode, event)
+    }
 
-  // 原有的 mpv 按键处理
-  event?.let {
-    if (player.onKey(it)) return true
-  }
-  return super.onKeyUp(keyCode, event)
+    // 原有的 mpv 按键处理
+    event?.let {
+      if (player.onKey(it)) return true
+    }
+    return super.onKeyUp(keyCode, event)
   }
 
   // ==================== System UI Management ====================
@@ -2596,7 +2617,7 @@ if (isPausedByScreenOff) {
     if (playlistTotalCount > 0 && playlistId != null) {
       // Calculate the actual index within the loaded window
       val windowIndex = index - playlistWindowOffset
-      
+
       // Check if we need to expand the window
       if (windowIndex < 0 || windowIndex >= playlist.size) {
         // Index is outside the current window - expand asynchronously
@@ -2605,18 +2626,19 @@ if (isPausedByScreenOff) {
             val windowSize = 100
             val halfWindow = windowSize / 2
             val newOffset = (index - halfWindow).coerceAtLeast(0)
-            
-            val items = playlistRepository.getPlaylistItemsWindowAsUris(
-              playlistId = playlistId!!,
-              centerIndex = index,
-              windowSize = windowSize
-            )
-            
+
+            val items =
+              playlistRepository.getPlaylistItemsWindowAsUris(
+                playlistId = playlistId!!,
+                centerIndex = index,
+                windowSize = windowSize,
+              )
+
             withContext(Dispatchers.Main) {
               playlist = items
               playlistWindowOffset = newOffset
               Log.d(TAG, "Expanded playlist window: offset=$newOffset, size=${items.size}")
-              
+
               // Now load the item with the updated window
               loadPlaylistItemInternal(index)
             }
@@ -2626,7 +2648,7 @@ if (isPausedByScreenOff) {
         }
         return
       }
-      
+
       // Item is within current window - use local index
       loadPlaylistItemInternal(index)
     } else {
@@ -2641,12 +2663,13 @@ if (isPausedByScreenOff) {
    */
   private fun loadPlaylistItemInternal(index: Int) {
     // Calculate the actual index within the loaded window
-    val windowIndex = if (playlistTotalCount > 0) {
-      index - playlistWindowOffset
-    } else {
-      index
-    }
-    
+    val windowIndex =
+      if (playlistTotalCount > 0) {
+        index - playlistWindowOffset
+      } else {
+        index
+      }
+
     if (windowIndex < 0 || windowIndex >= playlist.size) {
       Log.e(TAG, "Invalid playlist index: $index (window index: $windowIndex)")
       return
@@ -2674,25 +2697,29 @@ if (isPausedByScreenOff) {
     // Update playlist play history if this is a custom playlist
     playlistId?.let { id ->
       lifecycleScope.launch(Dispatchers.IO) {
-        val filePath = when (uri.scheme) {
-          "file" -> uri.path ?: uri.toString()
-          "content" -> {
-            contentResolver.query(
-              uri,
-              arrayOf(MediaStore.MediaColumns.DATA),
-              null,
-              null,
-              null,
-            )?.use { cursor ->
-              if (cursor.moveToFirst()) {
-                val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
-                if (columnIndex != -1) cursor.getString(columnIndex) else null
-              } else null
-            } ?: uri.toString()
-          }
+        val filePath =
+          when (uri.scheme) {
+            "file" -> uri.path ?: uri.toString()
+            "content" -> {
+              contentResolver
+                .query(
+                  uri,
+                  arrayOf(MediaStore.MediaColumns.DATA),
+                  null,
+                  null,
+                  null,
+                )?.use { cursor ->
+                  if (cursor.moveToFirst()) {
+                    val columnIndex = cursor.getColumnIndex(MediaStore.MediaColumns.DATA)
+                    if (columnIndex != -1) cursor.getString(columnIndex) else null
+                  } else {
+                    null
+                  }
+                } ?: uri.toString()
+            }
 
-          else -> uri.toString()
-        }
+            else -> uri.toString()
+          }
 
         runCatching {
           playlistRepository.updatePlayHistory(id, filePath)
@@ -2776,30 +2803,35 @@ if (isPausedByScreenOff) {
         }
 
       // Get parsed video title from MPV
-      val videoTitle = runCatching {
-        MPVLib.getPropertyString("media-title")
-      }.getOrNull()?.takeIf { it.isNotBlank() && it != name }
+      val videoTitle =
+        runCatching {
+          MPVLib.getPropertyString("media-title")
+        }.getOrNull()?.takeIf { it.isNotBlank() && it != name }
 
       // Get duration and file size from MPV
-      val duration = runCatching {
-        (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
-      }.getOrDefault(0L)
+      val duration =
+        runCatching {
+          (MPVLib.getPropertyDouble("duration") ?: 0.0).times(1000).toLong()
+        }.getOrDefault(0L)
 
-      val fileSize = runCatching {
-        // Try multiple properties to get file size
-        MPVLib.getPropertyDouble("file-size")?.toLong()
-          ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
-          ?: 0L
-      }.getOrDefault(0L)
+      val fileSize =
+        runCatching {
+          // Try multiple properties to get file size
+          MPVLib.getPropertyDouble("file-size")?.toLong()
+            ?: MPVLib.getPropertyDouble("stream-end")?.toLong()
+            ?: 0L
+        }.getOrDefault(0L)
 
       // Get video resolution from MPV
-      val width = runCatching {
-        MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
-      }.getOrDefault(0)
+      val width =
+        runCatching {
+          MPVLib.getPropertyInt("width") ?: MPVLib.getPropertyInt("video-params/w") ?: 0
+        }.getOrDefault(0)
 
-      val height = runCatching {
-        MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
-      }.getOrDefault(0)
+      val height =
+        runCatching {
+          MPVLib.getPropertyInt("height") ?: MPVLib.getPropertyInt("video-params/h") ?: 0
+        }.getOrDefault(0)
 
       RecentlyPlayedOps.addRecentlyPlayed(
         filePath = filePath,
@@ -2818,7 +2850,7 @@ if (isPausedByScreenOff) {
       Log.d(TAG, "  - videoTitle: $videoTitle")
       Log.d(TAG, "  - duration: ${duration}ms")
       Log.d(TAG, "  - size: ${fileSize}B")
-      Log.d(TAG, "  - resolution: ${width}x${height}")
+      Log.d(TAG, "  - resolution: ${width}x$height")
       Log.d(TAG, "  - playlistId: $playlistId")
     }.onFailure { e ->
       Log.e(TAG, "Error saving recently played for playlist item", e)
@@ -2832,7 +2864,10 @@ if (isPausedByScreenOff) {
    * For network streams via proxy (SMB/WebDAV/FTP), uses the stable network file path from intent extras.
    * For other network URIs (http/https/rtmp/etc.), uses a hash of the URI string to distinguish different streams.
    */
-  private fun getMediaIdentifier(intent: Intent, fileName: String): String {
+  private fun getMediaIdentifier(
+    intent: Intent,
+    fileName: String,
+  ): String {
     // Check if this is a network file played via proxy (SMB/WebDAV/FTP)
     // Use the stable network file path instead of the temporary proxy URL
     val networkFilePath = intent.getStringExtra("network_file_path")
@@ -2849,7 +2884,15 @@ if (isPausedByScreenOff) {
     }
 
     val uri = extractUriFromIntent(intent)
-    return if (uri != null && (uri.scheme?.startsWith("http") == true || uri.scheme == "rtmp" || uri.scheme == "ftp" || uri.scheme == "rtsp" || uri.scheme == "mms")) {
+    return if (uri != null &&
+      (
+        uri.scheme?.startsWith("http") == true ||
+          uri.scheme == "rtmp" ||
+          uri.scheme == "ftp" ||
+          uri.scheme == "rtsp" ||
+          uri.scheme == "mms"
+      )
+    ) {
       // For remote protocols: hash the URI so position is per-episode or per-stream.
       "${fileName}_${uri.toString().hashCode()}"
     } else {
@@ -2864,13 +2907,20 @@ if (isPausedByScreenOff) {
    * For local/offline files, uses fileName (display name or path).
    * For network URIs (http/https/rtmp/etc.), uses a hash of the URI string to distinguish different streams.
    */
-  private fun getMediaIdentifierFromUri(uri: Uri, fileName: String): String {
-    return if (uri.scheme?.startsWith("http") == true || uri.scheme == "rtmp" || uri.scheme == "ftp" || uri.scheme == "rtsp" || uri.scheme == "mms") {
+  private fun getMediaIdentifierFromUri(
+    uri: Uri,
+    fileName: String,
+  ): String =
+    if (uri.scheme?.startsWith("http") == true ||
+      uri.scheme == "rtmp" ||
+      uri.scheme == "ftp" ||
+      uri.scheme == "rtsp" ||
+      uri.scheme == "mms"
+    ) {
       "${fileName}_${uri.toString().hashCode()}"
     } else {
       fileName
     }
-  }
 
   private fun generatePlaylistFromFolder(currentPath: String) {
     lifecycleScope.launch(Dispatchers.IO) {
@@ -2882,9 +2932,10 @@ if (isPausedByScreenOff) {
 
         val videoExtensions = setOf("mp4", "mkv", "webm", "avi", "mov", "flv", "wmv", "3gp", "mpg", "mpeg", "ts")
 
-        val files = parentFolder.listFiles { file ->
-          file.isFile && file.extension.lowercase() in videoExtensions
-        } ?: return@runCatching
+        val files =
+          parentFolder.listFiles { file ->
+            file.isFile && file.extension.lowercase() in videoExtensions
+          } ?: return@runCatching
 
         val siblingFiles = files.sortedWith(compareBy(String.CASE_INSENSITIVE_ORDER) { it.name })
 
@@ -2906,8 +2957,6 @@ if (isPausedByScreenOff) {
       }
     }
   }
-
-
 
   companion object {
     /**

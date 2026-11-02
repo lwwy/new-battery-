@@ -290,8 +290,7 @@ private fun PortraitPreview(
               end.linkTo(parent.end)
               bottom.linkTo(seekbar.top, 12.dp) // More spacing above seekbar
               width = Dimension.fillToConstraints
-            }
-            .horizontalScroll(rememberScrollState()),
+            }.horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterHorizontally), // extraSmall, centered
         verticalAlignment = Alignment.CenterVertically,
       ) {
@@ -396,7 +395,7 @@ private fun PreviewButton(
       }
       PlayerButton.REPEAT_MODE,
       PlayerButton.SHUFFLE,
-        -> {
+      -> {
         Icon(
           imageVector = button.icon,
           contentDescription = null,

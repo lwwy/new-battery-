@@ -89,7 +89,7 @@ object DecoderPreferencesScreen : Screen {
               AnnotatedString(context.getString(debandingValue.titleRes))
             },
             // 👆👆👆 修改结束 👆👆👆
-            summary = { 
+            summary = {
               Text(context.getString(debanding.titleRes))
             },
           )

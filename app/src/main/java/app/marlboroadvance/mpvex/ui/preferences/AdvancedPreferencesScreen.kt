@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.verticalScroll
@@ -42,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.fastJoinToString
 import androidx.core.net.toUri
 import androidx.documentfile.provider.DocumentFile
@@ -98,11 +98,12 @@ object AdvancedPreferencesScreen : Screen {
                 showExportDialog = true
               },
               onFailure = { error ->
-                Toast.makeText(
-                  context,
-                  "导出失败：${error.message}",
-                  Toast.LENGTH_LONG,
-                ).show()
+                Toast
+                  .makeText(
+                    context,
+                    "导出失败：${error.message}",
+                    Toast.LENGTH_LONG,
+                  ).show()
               },
             )
           }
@@ -122,11 +123,12 @@ object AdvancedPreferencesScreen : Screen {
                 showImportDialog = true
               },
               onFailure = { error ->
-                Toast.makeText(
-                  context,
-                  "导入失败：${error.message}",
-                  Toast.LENGTH_LONG,
-                ).show()
+                Toast
+                  .makeText(
+                    context,
+                    "导入失败：${error.message}",
+                    Toast.LENGTH_LONG,
+                  ).show()
               },
             )
           }
@@ -140,12 +142,13 @@ object AdvancedPreferencesScreen : Screen {
         title = { Text("导出完成") },
         text = {
           Column(
-            modifier = Modifier
-              .fillMaxWidth()
-              .verticalScroll(rememberScrollState()),
+            modifier =
+              Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
           ) {
             Text(
-              "成功导出 ${exportStats?.totalExported} 个项目！\n\n"
+              "成功导出 ${exportStats?.totalExported} 个项目！\n\n",
             )
           }
         },
@@ -209,7 +212,6 @@ object AdvancedPreferencesScreen : Screen {
             .verticalScroll(rememberScrollState())
             .padding(padding),
         ) {
-
           Preference(
             title = { Text(text = "导出设置") },
             summary = { Text(text = "将设置导出为 XML 文件") },
@@ -240,7 +242,7 @@ object AdvancedPreferencesScreen : Screen {
             onIconButtonClick = { preferences.mpvConfStorageUri.delete() },
             iconButtonEnabled = mpvConfStorageLocation.isNotBlank(),
           )
-                    var mpvConf by remember { mutableStateOf(preferences.mpvConf.get()) }
+          var mpvConf by remember { mutableStateOf(preferences.mpvConf.get()) }
           LaunchedEffect(mpvConfStorageLocation) {
             if (mpvConfStorageLocation.isBlank()) return@LaunchedEffect
             withContext(Dispatchers.IO) {
@@ -374,7 +376,7 @@ object AdvancedPreferencesScreen : Screen {
               }
             },
           )
-          
+
           // Lua Scripts Section
           val enableLuaScripts by preferences.enableLuaScripts.collectAsState()
           SwitchPreference(
@@ -383,11 +385,11 @@ object AdvancedPreferencesScreen : Screen {
             title = { Text("启用 Lua 脚本") },
             summary = { Text("从配置目录加载 Lua 脚本") },
           )
-          
+
           var showScriptDialog by remember { mutableStateOf(false) }
           var availableScripts by remember { mutableStateOf<List<String>>(emptyList()) }
           val selectedScripts by preferences.selectedLuaScripts.collectAsState()
-          
+
           Preference(
             title = { Text("选择 Lua 脚本") },
             summary = {
@@ -413,22 +415,24 @@ object AdvancedPreferencesScreen : Screen {
                     }
                   }.onFailure { e ->
                     withContext(Dispatchers.Main) {
-                      Toast.makeText(
-                        context,
-                        "读取脚本目录时出错：${e.message}",
-                        Toast.LENGTH_LONG
-                      ).show()
+                      Toast
+                        .makeText(
+                          context,
+                          "读取脚本目录时出错：${e.message}",
+                          Toast.LENGTH_LONG,
+                        ).show()
                     }
                   }
                 }
                 withContext(Dispatchers.Main) {
                   availableScripts = scripts.sorted()
                   if (scripts.isEmpty()) {
-                    Toast.makeText(
-                      context,
-                      "在配置目录中未找到 .lua 文件",
-                      Toast.LENGTH_SHORT
-                    ).show()
+                    Toast
+                      .makeText(
+                        context,
+                        "在配置目录中未找到 .lua 文件",
+                        Toast.LENGTH_SHORT,
+                      ).show()
                   }
                   showScriptDialog = true
                 }
@@ -436,7 +440,7 @@ object AdvancedPreferencesScreen : Screen {
             },
             enabled = enableLuaScripts && mpvConfStorageLocation.isNotBlank(),
           )
-          
+
           if (showScriptDialog) {
             LuaScriptSelectionDialog(
               availableScripts = availableScripts,
@@ -448,7 +452,7 @@ object AdvancedPreferencesScreen : Screen {
               onDismiss = { showScriptDialog = false },
             )
           }
-          
+
           val activity = LocalActivity.current!!
           val clipboard = androidx.compose.ui.platform.LocalClipboardManager.current
           Preference(
@@ -581,18 +585,19 @@ fun LuaScriptSelectionDialog(
   onScriptsSelected: (Set<String>) -> Unit,
   onDismiss: () -> Unit,
 ) {
-  var tempSelectedScripts by remember(selectedScripts) { 
-    mutableStateOf(selectedScripts.toMutableSet()) 
+  var tempSelectedScripts by remember(selectedScripts) {
+    mutableStateOf(selectedScripts.toMutableSet())
   }
-  
+
   AlertDialog(
     onDismissRequest = onDismiss,
     title = { Text("选择 Lua 脚本") },
     text = {
       Column(
-        modifier = Modifier
-          .fillMaxWidth()
-          .verticalScroll(rememberScrollState()),
+        modifier =
+          Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
       ) {
         if (availableScripts.isEmpty()) {
           Text("在配置目录中未找到 Lua 脚本。")
@@ -603,19 +608,21 @@ fun LuaScriptSelectionDialog(
           )
           availableScripts.forEach { script ->
             Row(
-              modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
+              modifier =
+                Modifier
+                  .fillMaxWidth()
+                  .padding(vertical = 4.dp),
               verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
             ) {
               Checkbox(
                 checked = tempSelectedScripts.contains(script),
                 onCheckedChange = { checked ->
-                  tempSelectedScripts = if (checked) {
-                    (tempSelectedScripts + script).toMutableSet()
-                  } else {
-                    (tempSelectedScripts - script).toMutableSet()
-                  }
+                  tempSelectedScripts =
+                    if (checked) {
+                      (tempSelectedScripts + script).toMutableSet()
+                    } else {
+                      (tempSelectedScripts - script).toMutableSet()
+                    }
                 },
               )
               Text(
@@ -629,9 +636,9 @@ fun LuaScriptSelectionDialog(
     },
     confirmButton = {
       TextButton(
-        onClick = { 
+        onClick = {
           onScriptsSelected(tempSelectedScripts.toSet())
-        }
+        },
       ) {
         Text("确定")
       }

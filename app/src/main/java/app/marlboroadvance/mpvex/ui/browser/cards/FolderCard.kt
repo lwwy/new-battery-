@@ -77,8 +77,7 @@ fun FolderCard(
           .fillMaxWidth()
           .background(
             if (isSelected) MaterialTheme.colorScheme.tertiary.copy(alpha = 0.3f) else Color.Transparent,
-          )
-          .padding(16.dp),
+          ).padding(16.dp),
       verticalAlignment = Alignment.CenterVertically,
     ) {
       Box(
@@ -113,9 +112,10 @@ fun FolderCard(
           ) {
             Text(
               text = newVideoCount.toString(),
-              style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.Bold,
-              ),
+              style =
+                MaterialTheme.typography.labelSmall.copy(
+                  fontWeight = FontWeight.Bold,
+                ),
               color = Color.White,
             )
           }
@@ -147,13 +147,13 @@ fun FolderCard(
         Row {
           // Render custom chip content first if provided
           var hasChip = false
-          
+
           if (customChipContent != null) {
             customChipContent()
             hasChip = true
             Spacer(modifier = Modifier.width(4.dp))
           }
-          
+
           // Hide chips at storage root level (when videoCount is 0)
           if (showTotalVideosChip && folder.videoCount > 0) {
             Text(
@@ -164,8 +164,7 @@ fun FolderCard(
                   .background(
                     MaterialTheme.colorScheme.surfaceContainerHigh,
                     RoundedCornerShape(8.dp),
-                  )
-                  .padding(horizontal = 8.dp, vertical = 4.dp),
+                  ).padding(horizontal = 8.dp, vertical = 4.dp),
               color = MaterialTheme.colorScheme.onSurface,
             )
             hasChip = true
@@ -183,8 +182,7 @@ fun FolderCard(
                   .background(
                     MaterialTheme.colorScheme.surfaceContainerHigh,
                     RoundedCornerShape(8.dp),
-                  )
-                  .padding(horizontal = 8.dp, vertical = 4.dp),
+                  ).padding(horizontal = 8.dp, vertical = 4.dp),
               color = MaterialTheme.colorScheme.onSurface,
             )
             hasChip = true
@@ -202,8 +200,7 @@ fun FolderCard(
                   .background(
                     MaterialTheme.colorScheme.surfaceContainerHigh,
                     RoundedCornerShape(8.dp),
-                  )
-                  .padding(horizontal = 8.dp, vertical = 4.dp),
+                  ).padding(horizontal = 8.dp, vertical = 4.dp),
               color = MaterialTheme.colorScheme.onSurface,
             )
             hasChip = true
@@ -221,8 +218,7 @@ fun FolderCard(
                   .background(
                     MaterialTheme.colorScheme.surfaceContainerHigh,
                     RoundedCornerShape(8.dp),
-                  )
-                  .padding(horizontal = 8.dp, vertical = 4.dp),
+                  ).padding(horizontal = 8.dp, vertical = 4.dp),
               color = MaterialTheme.colorScheme.onSurface,
             )
           }

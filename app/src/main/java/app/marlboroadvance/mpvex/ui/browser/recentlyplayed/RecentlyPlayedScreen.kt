@@ -82,24 +82,24 @@ object RecentlyPlayedScreen : Screen {
         onDeleteItems = { items ->
           val videos = items.filterIsInstance<RecentlyPlayedItem.VideoItem>().map { it.video }
           val playlistIds = items.filterIsInstance<RecentlyPlayedItem.PlaylistItem>().map { it.playlist.id }
-          
+
           var successCount = 0
           var failCount = 0
-          
+
           // Delete videos from history
           if (videos.isNotEmpty()) {
             val (videoSuccess, videoFail) = viewModel.deleteVideosFromHistory(videos)
             successCount += videoSuccess
             failCount += videoFail
           }
-          
+
           // Delete playlist items from history
           if (playlistIds.isNotEmpty()) {
             val (playlistSuccess, playlistFail) = viewModel.deletePlaylistsFromHistory(playlistIds)
             successCount += playlistSuccess
             failCount += playlistFail
           }
-          
+
           Pair(successCount, failCount)
         },
         onRenameItem = null, // Cannot rename from history screen
@@ -135,10 +135,12 @@ object RecentlyPlayedScreen : Screen {
       when {
         !enableRecentlyPlayed -> {
           Box(
-            modifier = Modifier
-              .fillMaxSize()
-              .padding(padding)
-              .padding(bottom = 80.dp), // Account for bottom navigation bar
+            modifier =
+              Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(bottom = 80.dp),
+            // Account for bottom navigation bar
             contentAlignment = Alignment.Center,
           ) {
             EmptyState(
@@ -151,9 +153,10 @@ object RecentlyPlayedScreen : Screen {
 
         isLoading && recentItems.isEmpty() -> {
           Box(
-            modifier = Modifier
-              .fillMaxSize()
-              .padding(padding),
+            modifier =
+              Modifier
+                .fillMaxSize()
+                .padding(padding),
             contentAlignment = Alignment.Center,
           ) {
             CircularProgressIndicator(
@@ -165,10 +168,12 @@ object RecentlyPlayedScreen : Screen {
 
         recentItems.isEmpty() && !isLoading -> {
           Box(
-            modifier = Modifier
-              .fillMaxSize()
-              .padding(padding)
-              .padding(bottom = 80.dp), // Account for bottom navigation bar
+            modifier =
+              Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(bottom = 80.dp),
+            // Account for bottom navigation bar
             contentAlignment = Alignment.Center,
           ) {
             EmptyState(
@@ -215,6 +220,7 @@ object RecentlyPlayedScreen : Screen {
     }
   }
 }
+
 @Composable
 private fun RecentItemsContent(
   recentItems: List<RecentlyPlayedItem>,
@@ -240,16 +246,19 @@ private fun RecentItemsContent(
 
   val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
     targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
-    animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
+    animationSpec =
+      androidx.compose.animation.core
+        .tween(durationMillis = 200),
     label = "scrollbarAlpha",
   )
 
   LazyColumnScrollbar(
     state = listState,
-    settings = ScrollbarSettings(
-      thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-      thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
-    ),
+    settings =
+      ScrollbarSettings(
+        thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
+        thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
+      ),
   ) {
     LazyColumn(
       state = listState,
@@ -271,7 +280,7 @@ private fun RecentItemsContent(
               video = item.video,
               progressPercentage = null,
               isSelected = selectionManager.isSelected(item),
-              onClick = { 
+              onClick = {
                 if (selectionManager.isInSelectionMode) {
                   selectionManager.toggle(item)
                 } else {
@@ -279,30 +288,32 @@ private fun RecentItemsContent(
                 }
               },
               onLongClick = { selectionManager.toggle(item) },
-              onThumbClick = if (tapThumbnailToSelect) {
-                { selectionManager.toggle(item) }
-              } else {
-                { 
-                  if (selectionManager.isInSelectionMode) {
-                    selectionManager.toggle(item)
-                  } else {
-                    onVideoClick(item.video)
+              onThumbClick =
+                if (tapThumbnailToSelect) {
+                  { selectionManager.toggle(item) }
+                } else {
+                  {
+                    if (selectionManager.isInSelectionMode) {
+                      selectionManager.toggle(item)
+                    } else {
+                      onVideoClick(item.video)
+                    }
                   }
-                }
-              },
+                },
             )
           }
 
           is RecentlyPlayedItem.PlaylistItem -> {
-            val folderModel = VideoFolder(
-              bucketId = item.playlist.id.toString(),
-              name = item.playlist.name,
-              path = "",
-              videoCount = item.videoCount,
-              totalSize = 0,
-              totalDuration = 0,
-              lastModified = item.playlist.updatedAt / 1000,
-            )
+            val folderModel =
+              VideoFolder(
+                bucketId = item.playlist.id.toString(),
+                name = item.playlist.name,
+                path = "",
+                videoCount = item.videoCount,
+                totalSize = 0,
+                totalDuration = 0,
+                lastModified = item.playlist.updatedAt / 1000,
+              )
             FolderCard(
               folder = folderModel,
               isSelected = selectionManager.isSelected(item),

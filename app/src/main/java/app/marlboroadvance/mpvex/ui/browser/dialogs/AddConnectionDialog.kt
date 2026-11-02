@@ -88,135 +88,135 @@ fun AddConnectionSheet(
     },
     text = {
       Column(
-        modifier = Modifier
-          .fillMaxWidth()
-          .verticalScroll(rememberScrollState()),
+        modifier =
+          Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.spacedBy(16.dp),
       ) {
+        // Name and Protocol in one row
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          // Connection Name
+          OutlinedTextField(
+            value = name,
+            onValueChange = { name = it },
+            label = { Text("名称", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            modifier = Modifier.weight(0.50f),
+            singleLine = true,
+          )
 
-      // Name and Protocol in one row
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
+          // Protocol Dropdown
+          ExposedDropdownMenuBox(
+            expanded = protocolMenuExpanded,
+            onExpandedChange = { protocolMenuExpanded = it },
+            modifier = Modifier.weight(0.50f),
+          ) {
+            OutlinedTextField(
+              value = protocol.displayName,
+              onValueChange = { },
+              readOnly = true,
+              label = { Text("协议", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+              trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = protocolMenuExpanded) },
+              modifier =
+                Modifier
+                  .fillMaxWidth()
+                  .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            )
+            ExposedDropdownMenu(
+              expanded = protocolMenuExpanded,
+              onDismissRequest = { protocolMenuExpanded = false },
             ) {
-              // Connection Name
-              OutlinedTextField(
-                value = name,
-                onValueChange = { name = it },
-                label = { Text("名称", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                modifier = Modifier.weight(0.50f),
-                singleLine = true,
-              )
-
-              // Protocol Dropdown
-              ExposedDropdownMenuBox(
-                expanded = protocolMenuExpanded,
-                onExpandedChange = { protocolMenuExpanded = it },
-                modifier = Modifier.weight(0.50f),
-              ) {
-                OutlinedTextField(
-                  value = protocol.displayName,
-                  onValueChange = { },
-                  readOnly = true,
-                  label = { Text("协议", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                  trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = protocolMenuExpanded) },
-                  modifier = Modifier
-                    .fillMaxWidth()
-                    .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+              NetworkProtocol.entries.forEach { proto ->
+                DropdownMenuItem(
+                  text = { Text(proto.displayName) },
+                  onClick = {
+                    protocol = proto
+                    port = proto.defaultPort.toString()
+                    protocolMenuExpanded = false
+                  },
                 )
-                ExposedDropdownMenu(
-                  expanded = protocolMenuExpanded,
-                  onDismissRequest = { protocolMenuExpanded = false },
-                ) {
-                  NetworkProtocol.entries.forEach { proto ->
-                    DropdownMenuItem(
-                      text = { Text(proto.displayName) },
-                      onClick = {
-                        protocol = proto
-                        port = proto.defaultPort.toString()
-                        protocolMenuExpanded = false
-                      },
-                    )
-                  }
+              }
+            }
           }
         }
-      }
 
-      // Host
-      OutlinedTextField(
-        value = host,
-        onValueChange = { host = it },
-        label = { Text("主机/IP 地址", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        modifier = Modifier.fillMaxWidth(),
-        singleLine = true,
-        placeholder = { Text("192.168.1.100", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-      )
-
-      // Port and Path in one row
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-              // Port
-              OutlinedTextField(
-                value = port,
-                onValueChange = { port = it },
-                label = { Text("端口", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                modifier = Modifier.weight(0.3f),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-              )
-
-              // Path
-              OutlinedTextField(
-                value = path,
-                onValueChange = { path = it },
-                label = { Text("路径", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                modifier = Modifier.weight(0.7f),
-                singleLine = true,
-                placeholder = { Text("/", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-              )
-            }
-
-      // Anonymous checkbox
-      Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier.fillMaxWidth(),
-      ) {
-        Checkbox(
-          checked = isAnonymous,
-          onCheckedChange = { isAnonymous = it },
+        // Host
+        OutlinedTextField(
+          value = host,
+          onValueChange = { host = it },
+          label = { Text("主机/IP 地址", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+          modifier = Modifier.fillMaxWidth(),
+          singleLine = true,
+          placeholder = { Text("192.168.1.100", maxLines = 1, overflow = TextOverflow.Ellipsis) },
         )
-        Spacer(modifier = Modifier.width(8.dp))
-        Text("匿名/访客访问")
-      }
 
-      // Username and Password in one row
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-              // Username
-              OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("用户名", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                modifier = Modifier.weight(0.50f),
-                singleLine = true,
-                enabled = !isAnonymous,
-              )
+        // Port and Path in one row
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          // Port
+          OutlinedTextField(
+            value = port,
+            onValueChange = { port = it },
+            label = { Text("端口", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            modifier = Modifier.weight(0.3f),
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+          )
 
-              // Password
-              OutlinedTextField(
-                value = password,
-                onValueChange = { password = it },
-                label = { Text("密码", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                modifier = Modifier.weight(0.50f),
-                singleLine = true,
-                enabled = !isAnonymous,
-              )
-            }
+          // Path
+          OutlinedTextField(
+            value = path,
+            onValueChange = { path = it },
+            label = { Text("路径", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            modifier = Modifier.weight(0.7f),
+            singleLine = true,
+            placeholder = { Text("/", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+          )
+        }
 
+        // Anonymous checkbox
+        Row(
+          verticalAlignment = Alignment.CenterVertically,
+          modifier = Modifier.fillMaxWidth(),
+        ) {
+          Checkbox(
+            checked = isAnonymous,
+            onCheckedChange = { isAnonymous = it },
+          )
+          Spacer(modifier = Modifier.width(8.dp))
+          Text("匿名/访客访问")
+        }
+
+        // Username and Password in one row
+        Row(
+          modifier = Modifier.fillMaxWidth(),
+          horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+          // Username
+          OutlinedTextField(
+            value = username,
+            onValueChange = { username = it },
+            label = { Text("用户名", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            modifier = Modifier.weight(0.50f),
+            singleLine = true,
+            enabled = !isAnonymous,
+          )
+
+          // Password
+          OutlinedTextField(
+            value = password,
+            onValueChange = { password = it },
+            label = { Text("密码", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+            modifier = Modifier.weight(0.50f),
+            singleLine = true,
+            enabled = !isAnonymous,
+          )
+        }
       }
     },
     confirmButton = {

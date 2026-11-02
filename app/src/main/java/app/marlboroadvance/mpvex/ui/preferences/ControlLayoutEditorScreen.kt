@@ -247,6 +247,7 @@ data class ControlLayoutEditorScreen(
     }
   }
 }
+
 /**
  * A simple "Quick Settings" style chip for a player button.
  * Renders text or icons based on the button type.
@@ -304,7 +305,7 @@ private fun PlayerButtonChip(
         when (button) {
           PlayerButton.VIDEO_TITLE -> {
             Text(
-              text = "视频标题", 
+              text = "视频标题",
               fontSize = 15.sp, // Increased font size
               textAlign = TextAlign.Center,
               lineHeight = 14.sp,
@@ -322,7 +323,7 @@ private fun PlayerButtonChip(
                 modifier = Modifier.size(24.dp), // Smaller icon
               )
               Text(
-                text = "1:06 • 第1章", 
+                text = "1:06 • 第1章",
                 fontSize = 15.sp, // Increased font size
                 textAlign = TextAlign.Center,
                 lineHeight = 14.sp,

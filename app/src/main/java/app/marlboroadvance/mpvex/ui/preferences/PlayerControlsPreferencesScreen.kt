@@ -90,13 +90,15 @@ object PlayerControlsPreferencesScreen : Screen {
         listOf(topR, bottomR, bottomL)
       }
 
-    val topLeftButtons = remember {
-      listOf(PlayerButton.BACK_ARROW, PlayerButton.VIDEO_TITLE)
-    }
+    val topLeftButtons =
+      remember {
+        listOf(PlayerButton.BACK_ARROW, PlayerButton.VIDEO_TITLE)
+      }
 
-    val portraitBottomButtons = remember(portraitBottomState) {
-      appearancePrefs.parseButtons(portraitBottomState, mutableSetOf())
-    }
+    val portraitBottomButtons =
+      remember(portraitBottomState) {
+        appearancePrefs.parseButtons(portraitBottomState, mutableSetOf())
+      }
 
     Scaffold(
       topBar = {

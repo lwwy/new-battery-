@@ -5,9 +5,7 @@ import android.os.Environment
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
@@ -66,14 +64,13 @@ import app.marlboroadvance.mpvex.ui.browser.dialogs.VisibilityToggle
 import app.marlboroadvance.mpvex.ui.browser.selection.SelectionManager
 import app.marlboroadvance.mpvex.ui.browser.selection.rememberSelectionManager
 import app.marlboroadvance.mpvex.ui.browser.states.EmptyState
-import app.marlboroadvance.mpvex.ui.player.PlayerActivity
 import app.marlboroadvance.mpvex.ui.utils.LocalBackStack
 import app.marlboroadvance.mpvex.utils.media.CopyPasteOps
 import app.marlboroadvance.mpvex.utils.media.MediaUtils
 import app.marlboroadvance.mpvex.utils.sort.SortUtils
-import my.nanihadesuka.compose.LazyColumnScrollbar
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
+import my.nanihadesuka.compose.LazyColumnScrollbar
 import my.nanihadesuka.compose.ScrollbarSettings
 import org.koin.compose.koinInject
 import java.io.File
@@ -222,7 +219,7 @@ data class VideoListScreen(
       },
     ) { padding ->
       val autoScrollToLastPlayed by browserPreferences.autoScrollToLastPlayed.collectAsState()
-      
+
       VideoListContent(
         videosWithInfo = sortedVideosWithInfo,
         isLoading = isLoading && videos.isEmpty(),
@@ -380,6 +377,7 @@ data class VideoListScreen(
     }
   }
 }
+
 @Composable
 private fun VideoListContent(
   videosWithInfo: List<VideoWithPlaybackInfo>,
@@ -431,19 +429,21 @@ private fun VideoListContent(
 
     else -> {
       // Calculate initial scroll position to avoid jank (like MX Player)
-      val initialScrollIndex = remember(videosWithInfo, recentlyPlayedFilePath, autoScrollToLastPlayed) {
-        if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && videosWithInfo.isNotEmpty()) {
-          val index = videosWithInfo.indexOfFirst { it.video.path == recentlyPlayedFilePath }
-          if (index >= 0) index else 0
-        } else {
-          0
+      val initialScrollIndex =
+        remember(videosWithInfo, recentlyPlayedFilePath, autoScrollToLastPlayed) {
+          if (autoScrollToLastPlayed && recentlyPlayedFilePath != null && videosWithInfo.isNotEmpty()) {
+            val index = videosWithInfo.indexOfFirst { it.video.path == recentlyPlayedFilePath }
+            if (index >= 0) index else 0
+          } else {
+            0
+          }
         }
-      }
-      
-      val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = initialScrollIndex,
-        initialFirstVisibleItemScrollOffset = -200
-      )
+
+      val listState =
+        rememberLazyListState(
+          initialFirstVisibleItemIndex = initialScrollIndex,
+          initialFirstVisibleItemScrollOffset = -200,
+        )
       val coroutineScope = rememberCoroutineScope()
 
       // Check if at top of list to hide scrollbar during pull-to-refresh
@@ -459,7 +459,9 @@ private fun VideoListContent(
       // Animate scrollbar alpha
       val scrollbarAlpha by androidx.compose.animation.core.animateFloatAsState(
         targetValue = if (isAtTop || !hasEnoughItems) 0f else 1f,
-        animationSpec = androidx.compose.animation.core.tween(durationMillis = 200),
+        animationSpec =
+          androidx.compose.animation.core
+            .tween(durationMillis = 200),
         label = "scrollbarAlpha",
       )
 
@@ -471,10 +473,11 @@ private fun VideoListContent(
       ) {
         LazyColumnScrollbar(
           state = listState,
-          settings = ScrollbarSettings(
-            thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
-            thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
-          ),
+          settings =
+            ScrollbarSettings(
+              thumbUnselectedColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.4f * scrollbarAlpha),
+              thumbSelectedColor = MaterialTheme.colorScheme.primary.copy(alpha = scrollbarAlpha),
+            ),
         ) {
           LazyColumn(
             state = listState,
@@ -508,11 +511,12 @@ private fun VideoListContent(
                 isOldAndUnplayed = videoWithInfo.isOldAndUnplayed,
                 onClick = { onVideoClick(videoWithInfo.video) },
                 onLongClick = { onVideoLongClick(videoWithInfo.video) },
-                onThumbClick = if (tapThumbnailToSelect) {
-                  { onVideoLongClick(videoWithInfo.video) }
-                } else {
-                  { onVideoClick(videoWithInfo.video) }
-                },
+                onThumbClick =
+                  if (tapThumbnailToSelect) {
+                    { onVideoLongClick(videoWithInfo.video) }
+                  } else {
+                    { onVideoClick(videoWithInfo.video) }
+                  },
               )
             }
           }

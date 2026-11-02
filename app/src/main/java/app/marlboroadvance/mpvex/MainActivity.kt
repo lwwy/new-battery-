@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
       val dark by appearancePreferences.darkMode.collectAsState()
       val isSystemInDarkTheme = isSystemInDarkTheme()
       val isDarkMode = dark == DarkMode.Dark || (dark == DarkMode.System && isSystemInDarkTheme)
-      
+
       enableEdgeToEdge(
         SystemBarStyle.auto(
           lightScrim = Color.White.toArgb(),
