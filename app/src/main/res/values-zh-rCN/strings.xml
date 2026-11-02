@@ -552,4 +552,14 @@
   <string name="playlist_refresh_success">播放列表刷新成功</string>
   <string name="playlist_refresh_error">刷新播放列表失败：%s</string>
   <string name="playlist_m3u_badge">M3U</string>
+  <string name="player_sheets_chapter_title_substitute_audio">音频 #%d</string>
+  <string name="player_sheets_chapter_title_substitute_subtitle">字幕 #%d</string>
+  <string name="player_sheets_frame_navigation_snapshot_saved">已保存到 Pictures/mpvSnaps</string>
+  <string name="player_sheets_track_title_w_lang">#%d：%s（%s）</string>
+  <string name="player_sheets_track_title_wo_lang">#%d：%s</string>
+  <string name="player_sheets_track_lang_wo_title">#%d：%s</string>
+  <string name="player_gesture_seek_indicator">%c%s\n[%s]</string>
+  <string name="player_speed">%.2fx</string>
+  <string name="volume_slider_absolute_value">%d</string>
+  <string name="app_name">mpvEx</string>
 </resources>
