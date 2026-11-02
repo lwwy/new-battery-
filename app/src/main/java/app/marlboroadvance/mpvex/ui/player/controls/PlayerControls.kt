@@ -97,6 +97,7 @@ import app.marlboroadvance.mpvex.ui.player.controls.components.sheets.toFixed
 import app.marlboroadvance.mpvex.ui.theme.controlColor
 import app.marlboroadvance.mpvex.ui.theme.playerRippleConfiguration
 import app.marlboroadvance.mpvex.ui.theme.spacing
+import dev.vivvvek.seeker.Segment
 import `is`.xyz.mpv.MPVLib
 import `is`.xyz.mpv.Utils
 import kotlinx.collections.immutable.persistentListOf
@@ -144,10 +145,6 @@ fun PlayerControls(
   val seekBarShown by viewModel.seekBarShown.collectAsState()
   val pausedForCache by MPVLib.propBoolean["paused-for-cache"].collectAsState()
   val paused by MPVLib.propBoolean["pause"].collectAsState()
-  val duration by MPVLib.propInt["duration"].collectAsState()
-  val position by MPVLib.propInt["time-pos"].collectAsState()
-  val demuxerCacheDuration by MPVLib.propFloat["demuxer-cache-duration"].collectAsState()
-  val cacheBufferingState by MPVLib.propInt["cache-buffering-state"].collectAsState()
   val playbackSpeed by MPVLib.propFloat["speed"].collectAsState()
   val gestureSeekAmount by viewModel.gestureSeekAmount.collectAsState()
   val doubleTapSeekAmount by viewModel.doubleTapSeekAmount.collectAsState()
@@ -156,6 +153,19 @@ fun PlayerControls(
   var isSeeking by remember { mutableStateOf(false) }
   var resetControlsTimestamp by remember { mutableStateOf(0L) }
   val seekText by viewModel.seekText.collectAsState()
+  val onSeekValueChange: (Float) -> Unit = {
+    isSeeking = true
+    resetControlsTimestamp = System.currentTimeMillis()
+    viewModel.seekTo(it.toInt())
+  }
+  val onSeekValueChangeFinished: () -> Unit = {
+    isSeeking = false
+    resetControlsTimestamp = System.currentTimeMillis()
+  }
+  val onDurationTimerClick: () -> Unit = {
+    resetControlsTimestamp = System.currentTimeMillis()
+    playerPreferences.invertDuration.set(!playerPreferences.invertDuration.get())
+  }
   val currentChapter by MPVLib.propInt["chapter"].collectAsState()
   val mpvDecoder by MPVLib.propString["hwdec-current"].collectAsState()
   val decoder by remember { derivedStateOf { getDecoderFromValue(mpvDecoder ?: "auto") } }
@@ -790,49 +800,13 @@ fun PlayerControls(
               end.linkTo(parent.end, spacing.medium)
             },
         ) {
-          val invertDuration by playerPreferences.invertDuration.collectAsState()
-          val seekbarStyle by appearancePreferences.seekbarStyle.collectAsState()
-
-          val readAheadPosition by remember(position, demuxerCacheDuration, cacheBufferingState, duration) {
-            derivedStateOf {
-              val currentPos = position?.toFloat() ?: 0f
-              val cacheDuration = demuxerCacheDuration ?: 0f
-              val totalDuration = duration?.toFloat() ?: 0f
-              val isBuffering = cacheBufferingState ?: 0
-
-              if (cacheDuration > 0.1f) {
-                (currentPos + cacheDuration).coerceAtMost(totalDuration)
-              } else if (isBuffering > 0 && isBuffering < 100) {
-                val estimatedBuffer = (isBuffering / 100f) * 60f
-                (currentPos + estimatedBuffer).coerceAtMost(totalDuration)
-              } else {
-                (currentPos + 60f).coerceAtMost(totalDuration)
-              }
-            }
-          }
-
-          SeekbarWithTimers(
-            position = position?.toFloat() ?: 0f,
-            duration = duration?.toFloat() ?: 0f,
-            onValueChange = {
-              isSeeking = true
-              resetControlsTimestamp = System.currentTimeMillis()
-              viewModel.seekTo(it.toInt())
-            },
-            onValueChangeFinished = {
-              isSeeking = false
-              resetControlsTimestamp = System.currentTimeMillis()
-            },
-            timersInverted = Pair(false, invertDuration),
-            durationTimerOnCLick = {
-              resetControlsTimestamp = System.currentTimeMillis()
-              playerPreferences.invertDuration.set(!invertDuration)
-            },
-            positionTimerOnClick = {},
-            chapters = chapters.toImmutableList(),
+          PlayerSeekbar(
+            viewModel = viewModel,
+            chapters = chapters,
             paused = paused ?: false,
-            readAheadValue = readAheadPosition,
-            seekbarStyle = seekbarStyle,
+            onValueChange = onSeekValueChange,
+            onValueChangeFinished = onSeekValueChangeFinished,
+            onDurationTimerClick = onDurationTimerClick,
           )
         }
 
@@ -1098,4 +1072,63 @@ fun PlayerControls(
       onDismissRequest = { onOpenPanel(Panels.None) },
     )
   }
+}
+
+/**
+ * Isolated seek-bar composable.
+ *
+ * High-frequency playback states (`time-pos`, `duration`, demuxer-cache, cache-buffering)
+ * are collected here instead of in [PlayerControls], so that `time-pos` updates
+ * (~10 Hz while playing) only recompose this subtree rather than the entire control tree.
+ */
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun PlayerSeekbar(
+  viewModel: PlayerViewModel,
+  chapters: List<Segment>,
+  paused: Boolean,
+  onValueChange: (Float) -> Unit,
+  onValueChangeFinished: () -> Unit,
+  onDurationTimerClick: () -> Unit,
+) {
+  val playerPreferences = koinInject<PlayerPreferences>()
+  val appearancePreferences = koinInject<AppearancePreferences>()
+  val invertDuration by playerPreferences.invertDuration.collectAsState()
+  val seekbarStyle by appearancePreferences.seekbarStyle.collectAsState()
+  val position by MPVLib.propInt["time-pos"].collectAsState()
+  val duration by MPVLib.propInt["duration"].collectAsState()
+  val demuxerCacheDuration by MPVLib.propFloat["demuxer-cache-duration"].collectAsState()
+  val cacheBufferingState by MPVLib.propInt["cache-buffering-state"].collectAsState()
+  val chaptersImmutable = remember(chapters) { chapters.toImmutableList() }
+  val readAheadPosition by remember(position, demuxerCacheDuration, cacheBufferingState, duration) {
+    derivedStateOf {
+      val currentPos = position?.toFloat() ?: 0f
+      val cacheDuration = demuxerCacheDuration ?: 0f
+      val totalDuration = duration?.toFloat() ?: 0f
+      val isBuffering = cacheBufferingState ?: 0
+
+      if (cacheDuration > 0.1f) {
+        (currentPos + cacheDuration).coerceAtMost(totalDuration)
+      } else if (isBuffering > 0 && isBuffering < 100) {
+        val estimatedBuffer = (isBuffering / 100f) * 60f
+        (currentPos + estimatedBuffer).coerceAtMost(totalDuration)
+      } else {
+        (currentPos + 60f).coerceAtMost(totalDuration)
+      }
+    }
+  }
+
+  SeekbarWithTimers(
+    position = position?.toFloat() ?: 0f,
+    duration = duration?.toFloat() ?: 0f,
+    onValueChange = onValueChange,
+    onValueChangeFinished = onValueChangeFinished,
+    timersInverted = Pair(false, invertDuration),
+    durationTimerOnCLick = onDurationTimerClick,
+    positionTimerOnClick = {},
+    chapters = chaptersImmutable,
+    paused = paused,
+    readAheadValue = readAheadPosition,
+    seekbarStyle = seekbarStyle,
+  )
 }
