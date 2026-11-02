@@ -1007,14 +1007,19 @@ fun PlayerControls(
           )
         }
 
-        BatteryIndicator(
+        AnimatedVisibility(
+          visible = controlsShown && !areControlsLocked,
+          enter = fadeIn(playerControlsEnterAnimationSpec()),
+          exit = fadeOut(playerControlsExitAnimationSpec()),
           modifier =
             Modifier
               .constrainAs(batteryIndicator) {
                 top.linkTo(parent.top, margin = 14.dp)
                 end.linkTo(parent.end, margin = 16.dp)
               },
-        )
+        ) {
+          BatteryIndicator()
+        }
       }
     }
 
