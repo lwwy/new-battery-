@@ -1,5 +1,6 @@
 package app.marlboroadvance.mpvex.preferences
 
+import app.marlboroadvance.mpvex.R
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.AspectRatio
