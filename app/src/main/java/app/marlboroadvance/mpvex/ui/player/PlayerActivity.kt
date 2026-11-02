@@ -54,6 +54,7 @@ import `is`.xyz.mpv.Utils
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -705,12 +706,15 @@ class PlayerActivity :
         endBackgroundPlayback()
       }
 
-      // 【新增逻辑】：如果上次是因为息屏暂停的，现在亮屏了，延迟1秒等画布准备好再播放
+      // 【新增逻辑】：如果上次是因为息屏暂停的，现在亮屏了，延迟 500ms 等画布准备好再恢复播放。
+      // 使用 lifecycleScope 取代裸 Handler：Activity 在延时内被销毁时协程会自动取消，
+      // 避免向已释放的播放器实例写入属性而引发异常。
       if (isPausedByScreenOff) {
-        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
-          MPVLib.setPropertyBoolean("pause", false)
-        }, 500)
-        isPausedByScreenOff = false // 恢复状态
+        isPausedByScreenOff = false
+        lifecycleScope.launch {
+          delay(500)
+          viewModel.unpause()
+        }
       }
     }.onFailure { e ->
       Log.e(TAG, "Error during onStart", e)

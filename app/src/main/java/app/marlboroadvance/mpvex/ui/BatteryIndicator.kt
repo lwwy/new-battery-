@@ -28,7 +28,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.text.TextStyle
@@ -76,7 +75,7 @@ fun BatteryIndicator(modifier: Modifier = Modifier) {
   val color = if (batteryLevel > 20) Color(0xFF4CAF50) else Color(0xFFF44336)
 
   Row(
-    modifier = modifier.pointerInput(Unit) {},
+    modifier = modifier,
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Box(
