@@ -544,4 +544,22 @@
     <string name="no_storage_devices_found">No storage devices found</string>
     <string name="no_folders_or_supported_files">No folders or supported files</string>
     <string name="hello_world">Hello world</string>
+    <string name="btn_label_back">Back Arrow</string>
+    <string name="btn_label_title">Video Title</string>
+    <string name="btn_label_bookmarks">Chapters / Bookmarks</string>
+    <string name="btn_label_speed">Playback Speed</string>
+    <string name="btn_label_decoder">Decoder</string>
+    <string name="btn_label_rotation">Screen Rotation</string>
+    <string name="btn_label_frame_nav">Frame Navigation</string>
+    <string name="btn_label_zoom">Video Zoom</string>
+    <string name="btn_label_pip">Picture-in-Picture</string>
+    <string name="btn_label_aspect">Aspect Ratio</string>
+    <string name="btn_label_lock">Lock Controls</string>
+    <string name="btn_label_audio">Audio Track</string>
+    <string name="btn_label_subtitles">Subtitles</string>
+    <string name="btn_label_more">More Options</string>
+    <string name="btn_label_chapter">Current Chapter</string>
+    <string name="btn_label_repeat_mode">Repeat Mode</string>
+    <string name="btn_label_shuffle">Shuffle</string>
+    <string name="btn_label_none">None</string>
 </resources>
