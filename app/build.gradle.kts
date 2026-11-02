@@ -49,7 +49,7 @@ android {
       isMinifyEnabled = true
       isShrinkResources = true
       proguardFiles(
-         getDefaultProguardFile("proguard-android-optimize.txt"),
+        getDefaultProguardFile("proguard-android-optimize.txt"),
         "proguard-rules.pro",
       )
       ndk {
@@ -78,8 +78,8 @@ android {
     buildConfig = true
   }
   lint {
-    abortOnError = false        // Lint 发现错误时不中断构建
-    checkReleaseBuilds = false  // 打包 Release/Preview 版本时不执行 Lint 检查
+    abortOnError = false // Lint 发现错误时不中断构建
+    checkReleaseBuilds = false // 打包 Release/Preview 版本时不执行 Lint 检查
   }
   composeCompiler {
     includeSourceInformation = true
@@ -109,7 +109,7 @@ android {
     mapOf(
       "arm64-v8a" to 2,
     )
-  
+
   androidComponents {
     onVariants { variant ->
       variant.outputs.forEach { output ->
@@ -188,7 +188,8 @@ dependencies {
   // Network protocol libraries
   implementation(libs.smbj) // SMB/CIFS
   implementation(libs.commons.net) // FTP
-  implementation(libs.sardine.android) { // WebDAV (Android-compatible version using OkHttp)
+  implementation(libs.sardine.android) {
+    // WebDAV (Android-compatible version using OkHttp)
     // Exclude xpp3 as Android already provides XmlPullParser
     exclude(group = "xpp3", module = "xpp3")
   }
