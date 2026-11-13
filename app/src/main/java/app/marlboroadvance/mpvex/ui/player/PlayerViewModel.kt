@@ -352,22 +352,30 @@ class PlayerViewModel(
 
 // ==================== Playback Control ====================
 
+  /**
+   * Set by PlayerActivity.onDestroy() *before* MPVLib.destroy().
+   * Prevents queued coroutines from calling into a freed native mpv handle (SIGSEGV on exit).
+   */
+  @Volatile
+  private var mpvDestroyed = false
+
+  fun markMpvDestroyed() {
+    mpvDestroyed = true
+  }
+
   fun pauseUnpause() {
-    viewModelScope.launch(Dispatchers.IO) {
-      MPVLib.command("cycle", "pause")
-    }
+    if (mpvDestroyed) return
+    MPVLib.command("cycle", "pause")
   }
 
   fun pause() {
-    viewModelScope.launch(Dispatchers.IO) {
-      MPVLib.setPropertyBoolean("pause", true)
-    }
+    if (mpvDestroyed) return
+    MPVLib.setPropertyBoolean("pause", true)
   }
 
   fun unpause() {
-    viewModelScope.launch(Dispatchers.IO) {
-      MPVLib.setPropertyBoolean("pause", false)
-    }
+    if (mpvDestroyed) return
+    MPVLib.setPropertyBoolean("pause", false)
   }
 
 // ==================== UI Control ====================

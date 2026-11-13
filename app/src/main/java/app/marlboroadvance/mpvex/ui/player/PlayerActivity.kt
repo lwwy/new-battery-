@@ -540,6 +540,7 @@ class PlayerActivity :
       }
 
       isReady = false
+      viewModel.markMpvDestroyed()
       cleanupMPV()
       cleanupAudio()
       cleanupReceivers()
